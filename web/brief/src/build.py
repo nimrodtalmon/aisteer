@@ -52,26 +52,52 @@ def ncdf(x):
 
 # ---------- pictures ----------
 def motivation_vis():
-    items = sorted(json.load(open(os.path.join(ROOT, 'app', 'seed.json')))['items'], key=lambda r: -r['ai_weight'])
+    """Four days of a living split: the engine re-splits daily, errs on one project
+    (orange); on day 3 a member checks that project against another and nudges it."""
+    base = [0.20, 0.17, 0.15, 0.13, 0.11, 0.09, 0.08, 0.07]
+    drift = [[0, 0, 0, 0, 0, 0, 0, 0], [.01, -.01, 0, .01, 0, -.01, 0, 0],
+             [.015, -.01, .005, 0, .005, -.01, 0, -.005], [.01, -.005, .01, -.005, .005, -.01, .005, -.01]]
+    blind = 2
     w, h, b = 1660, 560, ''
-    # engine
-    b += f'<rect x="0" y="150" width="300" height="220" rx="24" fill="{DK}"/>'
-    b += text(150, 255, 'engine', 48, LT, weight=800) + text(150, 305, 'updates daily', 30, GL)
-    b += f'<path d="M320 260 l70 0 l0 -22 l40 32 l-40 32 l0 -22 l-70 0 Z" fill="{GL}"/>'
-    # 98 shares
-    X0, Y0, top = 460, 470, items[0]['ai_weight']
-    bw = 820 / len(items)
-    checked = {12, 47}
-    for k, it in enumerate(items):
-        hh = it['ai_weight'] / top * 400
-        b += f'<rect x="{X0 + k*bw:.1f}" y="{Y0 - hh:.1f}" width="{bw*0.72:.1f}" height="{hh:.1f}" fill="{OR if k in checked else GR}"/>'
-    b += text(X0 + 410, 525, '98 repos, $350k', 32, DK, weight=700)
-    b += f'<path d="M1340 260 l-70 0 l0 -22 l-40 32 l40 32 l0 -22 l70 0 Z" fill="{GL}"/>'
-    # people
-    b += f'<rect x="1360" y="150" width="300" height="220" rx="24" fill="{CARD}" stroke="{GL}" stroke-width="3"/>'
-    for k in range(3):
-        b += head(1450 + k * 60, 205, 14, OR)
-    b += text(1510, 305, 'jurors', 48, DK, weight=800) + text(1510, 345, 'check a few pairs', 28, GR)
+    pw, gapw, X00, Y0, H = 330, 113, 0, 470, 1400
+    for d in range(4):
+        x0 = X00 + d * (pw + gapw)
+        b += f'<rect x="{x0}" y="60" width="{pw}" height="440" rx="20" fill="{CARD}" stroke="{GL}" stroke-width="2"/>'
+        b += text(x0 + pw / 2, 40, f'day {d+1}', 32, GR, weight=700)
+        for k, v in enumerate(base):
+            v = v + drift[d][k] + (0.08 if k == blind and d < 3 else (0.0 if k == blind else 0))
+            hh = v * H
+            bx = x0 + 25 + k * 37
+            b += f'<rect x="{bx}" y="{Y0 - hh:.0f}" width="28" height="{hh:.0f}" rx="4" fill="{OR if k == blind else GR}"/>'
+        if d < 3:
+            ax = x0 + pw + 12
+            b += f'<path d="M{ax} 270 l58 0 l0 -16 l30 24 l-30 24 l0 -16 l-58 0 Z" fill="{GL}"/>'
+            b += text(ax + 44, 330, 'engine', 26, GR, weight=700)
+        if d == 2:
+            hx = x0 + 25 + blind * 37 + 14
+            b += head(hx, 100, 16, BLUE)
+            b += f'<path d="M{hx-10} 150 l20 0 l0 26 l12 0 l-22 26 l-22 -26 l12 0 Z" fill="{BLUE}"/>'
+            b += text(x0 + 25, 535, 'a member checks it and nudges', 26, BLUE, 'start', 800)
+    b += text(X00 + 25 + blind * 37 + 14, 535, 'the engine errs here', 26, OR, 'start', 800)
+    return svg(w, h, b)
+
+
+def engine_vis():
+    """Two days: the engine maps one allocation to the next."""
+    base = [0.20, 0.17, 0.23, 0.13, 0.11, 0.09, 0.07]
+    nxt = [0.21, 0.16, 0.23, 0.14, 0.10, 0.09, 0.07]
+    w, h, b = 760, 460, ''
+    for d, vals in enumerate((base, nxt)):
+        x0 = d * 430
+        b += f'<rect x="{x0}" y="60" width="330" height="340" rx="20" fill="{CARD}" stroke="{GL}" stroke-width="2"/>'
+        b += text(x0 + 165, 40, f'day {"t" if d == 0 else "t + 1"}', 30, GR, weight=700)
+        for k, v in enumerate(vals):
+            hh = v * 1100
+            b += f'<rect x="{x0 + 30 + k*40}" y="{380 - hh:.0f}" width="30" height="{hh:.0f}" rx="4" fill="{OR if k == 2 else GR}"/>'
+        b += text(x0 + 165, 440, 'share of each project', 26, GR)
+    b += f'<path d="M342 230 l40 0 l0 -16 l30 24 l-30 24 l0 -16 l-40 0 Z" fill="{GL}"/>'
+    b += text(378, 300, 'engine', 26, GR, weight=700)
+    b += text(530 + 2 * 40 + 15, 105, 'blind spot', 26, OR, 'middle', 800)
     return svg(w, h, b)
 
 
@@ -393,7 +419,7 @@ def related_vis():
 
 # ---------- notation ----------
 I = lambda v: '\\(' + v + '\\)'
-alloc, view, step, rate, gap, share, target, loss = (r'\mathrm{alloc}', r'\mathrm{view}', r'\mathrm{step}', r'\mathrm{rate}',
+view, step, rate, gap, share, target, loss = (r'\mathrm{view}', r'\mathrm{step}', r'\mathrm{rate}',
                                                      r'\mathrm{gap}', r'\mathrm{share}', r'\mathrm{target}', r'\mathrm{loss}')
 frac, bias, infl, lr = r'\mathrm{frac}_j', r'\mathrm{bias}', r'\mathrm{infl}', r'\mathrm{lr}'
 
@@ -413,7 +439,7 @@ def thm(label, title, box, why, vis, caption='', stack=False, pic_h=None):
 TITLE = f'''<section class="slide dark center">
   <p class="eyebrow">aisteer</p>
   <h1>Steering a Living Allocator<br>with Scarce Attention</h1>
-  <p class="big">An engine splits a fund; a community keeps it on course</p>
+  <p class="big">An AI splits a fund; a community keeps it on course</p>
   <p class="muted">Nimrod Talmon · Ben-Gurion University · draft, {DATE}</p>
 </section>'''
 
@@ -422,41 +448,61 @@ S = slides.append
 
 S(f'''<section class="slide light">
   <p class="eyebrow">Motivation</p>
-  <h2>An AI splits the money; people can check little</h2>
-  <p class="sub">Deep Funding, GG24: 50 jurors, 500 judgments; motivation was the bottleneck.</p>
+  <h2>An AI keeps re-splitting a fund</h2>
+  <p class="sub">The community should keep the split on course, but few of its members look.</p>
   <div class="vis">{motivation_vis()}</div>
 </section>''')
 
-S(thm('Model', 'Projects, an engine, members',
-      f"""<p>{I('m')} projects; log-weights {I(alloc + r'_t \in \mathbb{R}^m')}:</p>
-<p class="eq">{I(share + r'_t(j) = \frac{e^{' + alloc + r'_t(j)}}{\sum_k e^{' + alloc + r'_t(k)}}')}</p>
-<p><b>Engine:</b> moves {I(alloc + '_t')} over time.</p>
-<p>{I('n')} members; view {I(view + r'_i \in \mathbb{R}^m')}; may maintain one project.</p>
-<p><b>Actions:</b> flag a project (nearly free); answer a question (one unit of attention).</p>""",
-      f"<p>A question: a pair {I('a, b')} with current amounts; more to {I('a')}, about right, or more to {I('b')}.</p>",
+S('''<section class="slide light">
+  <p class="eyebrow">Motivation</p>
+  <h2>A real case: Deep Funding, round GG24</h2>
+  <p class="sub">An AI splits $350k among 98 open-source repos; human jurors compare pairs.</p>
+  <div class="facts">
+    <div class="box"><p class="k">scarce</p><p>About 50 jurors gave about 500 judgments; motivation was the main constraint.</p></div>
+    <div class="box"><p class="k">noisy</p><p>Jurors disagreed on which project ranks higher 40% of the time.</p></div>
+    <div class="box"><p class="k">fragile</p><p>One answer rating a project 999× another moved about a quarter of the funding.</p></div>
+    <div class="box"><p class="k">wanted</p><p>The trial’s analysis asks for continuous funding with occasional juror input.</p></div>
+  </div>
+</section>''')
+
+S(thm('Model', 'A living allocation',
+      f"""<p>Projects {I(r'1, \dots, m')}; days {I(r't = 0, 1, 2, \dots')}</p>
+<p><b>Allocation</b> {I(share + '_t')}: shares of the fund, {I(share + r'_t(j) \ge 0')}, {I(r'\sum_j ' + share + '_t(j) = 1')}.</p>
+<p><b>Engine:</b> moves the allocation every day.</p>
+<p><b>Gap</b> of projects {I('a, b')}: {I(gap + r'_{ab} = \log \tfrac{' + share + '(a)}{' + share + '(b)}')}.</p>""",
+      '<p>First, a benevolent engine: it follows the world, but errs persistently on some projects.</p>',
+      engine_vis()))
+
+S(thm('Model', 'Members: views, questions, flags',
+      f"""<p>Members {I(r'1, \dots, n')}; <b>view</b> {I(view + '_i')}: the allocation {I('i')} considers right.</p>
+<p><b>Judged gap:</b> {I(r'd_{i,ab} = \log \tfrac{' + view + '_i(a)}{' + view + r'_i(b)} + \text{noise}')}.</p>
+<p><b>Question</b> to {I('i')} on {I('a, b')}: shows their shares; the answer is {I(r'\operatorname{sign}(d_{i,ab} - ' + gap + '_{ab})')}.</p>
+<p><b>Flag:</b> a project marked too low or too high.</p>""",
+      '<p>Some members maintain a project. <b>Attention</b>: answered questions; flags are nearly free.</p>',
       card_vis()))
 
-S(thm('Model', 'The constitution turns answers into movement',
-      f"""<p>It fixes the rates {I(rate + '_{ab}')} of asking pairs, who answers, recusal, caps, escalation, the update.</p>
-<p>{I(gap + '_{ab} = ' + alloc + '(a) - ' + alloc + '(b)')}; {I('d_{ab}')}: the answerer’s judged gap.</p>
-<p><b>Nudge:</b> {I(gap + '_{ab}')} moves by {I(step + r'\cdot\operatorname{sign}(d_{ab} - ' + gap + '_{ab})')}.</p>
-<p><b>Multiplier</b> (the round’s): typed {I('x')}; {I(gap + '_{ab}')} moves by {I(lr + r'\cdot(\log x - ' + gap + '_{ab})')}.</p>""",
-      '', formats_vis(), f"Simulated answers on one pair; {I(step + '=0.1')}, {I(lr + '=0.3')}."))
+S(thm('Model', 'A constitution turns answers into moves',
+      f"""<p><b>Constitution:</b> rates {I(rate + '_{ab}')} of asking pairs, whom to ask, the update.</p>
+<p>{I('d_{ab}')}: the judged gap of the member asked about {I('a, b')}.</p>
+<p><b>Nudge:</b> answer {I('s')} multiplies {I(r'\tfrac{' + share + '(a)}{' + share + '(b)}')} by {I(r'e^{s \cdot ' + step + '}')}</p>
+<p><b>Multiplier</b> (the round’s): typed ratio {I('x')}; {I(gap + '_{ab}')} moves by {I(lr + r'\cdot(\log x - ' + gap + '_{ab})')}</p>""",
+      '',
+      formats_vis(), f"A nudge uses an answer’s direction, a multiplier its size. {I(step + '=0.1')}, {I(lr + '=0.3')}."))
 
-S(thm('Model', 'Objectives',
-      f"""<p><b>Target:</b> {I(target + '(a) - ' + target + r'(b) = \operatorname{median}(d_{ab})')}.</p>
-<p><b>Misallocation:</b> {I(r'\tfrac12 \sum_j |' + share + '(j) - ' + share + '_{' + target + '}(j)|')}.</p>
-<p><b>Attention:</b> answered questions per day.</p>
-<p><b>Capture:</b> extra share of projects whose maintainers answer.</p>
-<p><b>Shortchanged:</b> projects below half their target share.</p>""",
-      '<p>Misallocation is the fraction of the fund in the wrong place. Goal: little of it for little attention, with no capture.</p>',
+S(thm('Model', 'Objective',
+      f"""<p><b>Target</b> {I(target)}: for every pair {I('a, b')},</p>
+<p class="eq">{I(r'\log \tfrac{' + target + '(a)}{' + target + r'(b)} = \operatorname{median}_i\, d_{i,ab}')}</p>
+<p><b>Misallocation</b> on day {I('t')}, the fraction of the fund in the wrong place:</p>
+<p class="eq">{I(r'\tfrac12 \textstyle\sum_j |' + share + '_t(j) - ' + target + '(j)|')}</p>
+<p><b>Goal:</b> low misallocation for little attention.</p>""",
+      '<p>Also watched: capture (share won by maintainers) and shortchanged projects (below half their target).</p>',
       misalloc_vis(), 'Illustration with ten projects.'))
 
 S(thm('Observation', 'Nudges minimize a loss at the median',
       f"""<p>In the small-step limit, nudges follow the gradient flow of</p>
-<p class="eq">{I(loss + '(' + alloc + r') = \tfrac{' + step + r'}{2} \sum_{a \lt b} ' + rate + r'_{ab}\, \mathbb{E}\,|d_{ab} - ' + gap + '_{ab}|')}</p>
+<p class="eq">{I(loss + '(' + share + r') = \tfrac{' + step + r'}{2} \sum_{a \lt b} ' + rate + r'_{ab}\, \mathbb{E}\,|d_{ab} - ' + gap + '_{ab}|')}</p>
 <p>The loss is convex; its minimizers are the resting points.</p>""",
-      f"<p>The derivative of {I(r'\mathbb{E}|d - ' + gap + '|')} in {I(gap)} is {I(r'\Pr[d \lt ' + gap + r'] - \Pr[d > ' + gap + ']')}: minus the expected answer.</p>",
+      f"<p>The derivative of {I(r'\mathbb{E}|d - ' + gap + '|')} in {I(gap)} is minus the expected answer.</p>",
       loss_vis(), 'Judged gaps from a skewed distribution.'))
 
 S(thm('Proposition 1', 'Bounded influence',
@@ -467,8 +513,8 @@ S(thm('Proposition 1', 'Bounded influence',
 
 AG, g13a, g13b = agenda_vis()
 S(thm('Proposition 2', 'The agenda is not the verdict',
-      f"""<p>If {I(r'\operatorname{median}(d_{ab}) = ' + target + '(a) - ' + target + '(b)')} for every pair, then {I(target)} minimizes the loss for all rates.</p>
-<p>If also the asked pairs connect all projects and each {I('d_{ab}')} has positive density at its median, then it is the unique minimizer, up to a constant.</p>""",
+      f"""<p>If {I(r'\operatorname{median}\, d_{ab} = \log \tfrac{' + target + '(a)}{' + target + '(b)}')} for every pair, then {I(target)} minimizes the loss for all rates.</p>
+<p>If also the asked pairs connect all projects and each {I('d_{ab}')} has positive density at its median, then it is the unique minimizer.</p>""",
       f"<p>Each term is smallest at its median, and {I(target)} attains all of them.</p>",
       AG, f"Simulation, inconsistent medians: 1 on (1,2) and (2,3), 0 on (1,3). The gap ends at {g13a} or {g13b}."))
 
@@ -537,7 +583,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 STYLE = '''<style>
 .sub { font-size: 42px; color: var(--gray); margin-top: -20px; }
-.split { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; margin-block: auto; }
+.split { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 56px; align-items: center; margin-block: auto; }
 .stack { display: flex; flex-direction: column; gap: 10px; margin-top: -10px; }
 .stack .pic svg { max-height: var(--ph, 400px); }
 .box { background: var(--card); border-left: 10px solid var(--orange); border-radius: 0 18px 18px 0;
@@ -550,6 +596,9 @@ STYLE = '''<style>
 .pic .cap { font-size: 28px; color: var(--gray); text-align: center; margin-top: 10px; }
 .vis { margin-block: auto; display: flex; justify-content: center; }
 .flow .step span { font-size: 30px; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-block: auto; }
+.facts .box { font-size: 36px; border-radius: 18px; border-left: none; border-top: 10px solid var(--orange); }
+.facts .k { font-weight: 800; color: var(--orange); font-size: 40px; }
 .rw { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 36px; margin-top: 10px; }
 .rw .box { background: var(--card); border: 3px solid var(--gray-light); border-radius: 24px; padding: 26px 32px; }
 .rw h3 { font-size: 40px; margin: 0 0 8px; }
