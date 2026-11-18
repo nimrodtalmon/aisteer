@@ -171,7 +171,7 @@ def formats_vis():
     b += text(X1, Y(truth) - 14, 'median wanted ratio', 26, GR, 'end')
     b += poly([(X(t), Y(g)) for t, g in enumerate(mul)], BLUE, 5)
     b += poly([(X(t), Y(g)) for t, g in enumerate(nud)], OR, 6)
-    b += text(X(15) + 18, Y(max(mul)) + 30, 'multiplier: one 999× answer', 26, BLUE, 'start', 700)
+    b += text(X(15) + 14, Y(max(mul)) + 30, 'multiplier (one 999×)', 24, BLUE, 'start', 700)
     b += text(X(8), Y(nud[8]) + 50, 'nudge', 30, OR, 'middle', 800)
     b += text((X0 + X1) / 2, 500, 'answers', 28, GR) + text(X0 - 14, Y(0) + 10, '0', 26, GR, 'end') + text(X0 - 14, Y(2) + 10, '2', 26, GR, 'end')
     b += text(X0, 26, 'ratio of a to b (log scale)', 26, GR, 'start', 700)
@@ -350,7 +350,7 @@ def frontier_vis():
         pts = sorted((v['attention'][0], v['error'][0] * 100) for k, v in d.items()
                      if k.split('|')[0] == name and v['attention'][0] > 0.5)
         return pts
-    fs, rp = series('flag and sample'), series('panel, random pairs')
+    fs, rp, mw = series('flag and sample'), series('panel, random pairs'), series('panel, money-weighted')
     eng = d['engine only|0']['error'][0] * 100
     esc = d['flag, sample, escalate|2']; esc = (esc['attention'][0], esc['error'][0] * 100)
     on, om = d['open, nudges|0'], d['open, multipliers|0']
@@ -368,13 +368,14 @@ def frontier_vis():
     b += text(X0 + 10, Y(eng) - 14, f'AI alone: {eng:.1f}%', 28, DK, 'start', 800)
     b += poly([(X(a), Y(e)) for a, e in rp], GR, 4)
     b += ''.join(f'<circle cx="{X(a):.0f}" cy="{Y(e):.0f}" r="8" fill="{GR}"/>' for a, e in rp)
+    b += poly([(X(a), Y(e)) for a, e in mw], GR, 4, 'stroke-dasharray="10 8"')
     b += poly([(X(a), Y(e)) for a, e in fs], OR, 6)
     b += ''.join(f'<circle cx="{X(a):.0f}" cy="{Y(e):.0f}" r="11" fill="{OR}"/>' for a, e in fs)
     b += text(X(fs[3][0]) + 10, Y(fs[3][1]) + 46, 'flag and sample', 30, OR, 'start', 800)
-    b += text(X(rp[2][0]) + 20, Y(rp[2][1]) - 16, 'random pairs, random members', 28, GR, 'start', 700)
+    b += text(X(rp[2][0]) + 20, Y(rp[2][1]) - 16, 'random pairs', 28, GR, 'start', 700)
     x, y = X(esc[0]), Y(esc[1])
     b += f'<rect x="{x-12:.0f}" y="{y-12:.0f}" width="24" height="24" fill="{BLUE}" transform="rotate(45 {x:.0f} {y:.0f})"/>'
-    b += text(x, y + 50, f'+ escalation: {esc[1]:.1f}%', 28, BLUE, 'start', 800)
+    b += text(x + 10, y + 56, f'+ escalation: {esc[1]:.1f}%', 28, BLUE, 'start', 800)
     for v, lab in ((on, 'open forum, nudges'), (om, 'open forum, multipliers')):
         x, y = X(v['attention'][0]), Y(v['error'][0] * 100)
         b += f'<circle cx="{x:.0f}" cy="{y:.0f}" r="12" fill="{LT}" stroke="{DK}" stroke-width="4"/>'
@@ -389,8 +390,8 @@ def designs_vis():
             ('open forum, multipliers', d['open forum, multipliers'], GR),
             ('open forum, nudges', d['open forum, nudges'], GR),
             ('random members, multipliers', d['panel, multipliers'], GR),
-            ('random members, nudges', d['panel, nudges'], OR),
-            ('random members, nudges, flags', d['panel, nudges, flags'], OR)]
+            ('share-weighted', d['panel, nudges'], OR),
+            ('flag and sample', d['panel, nudges, flags'], OR)]
     w, h, b = 1660, 520, ''
     L, bx, sc = 520, 540, 820 / 22
     b += text(bx, 30, 'misallocated', 28, GR, 'start', 700) + text(1650, 30, 'captured', 28, GR, 'end', 700)
@@ -410,8 +411,8 @@ def inflated_vis():
     fb, fi = res('frontier_base.json'), res('frontier_inflated.json')
     eng = fb['engine only|0']['error'][0] * 100
     rows = [('flag and sample, 5 a day', fb['flag and sample|10'], fi['flag and sample|10']),
-            ('random members, nudges, flags', base['panel, nudges, flags'], infl['panel, nudges, flags']),
-            ('random members, nudges', base['panel, nudges'], infl['panel, nudges']),
+            ('flag and sample, 12 a day', base['panel, nudges, flags'], infl['panel, nudges, flags']),
+            ('share-weighted', base['panel, nudges'], infl['panel, nudges']),
             ('open forum, nudges', base['open forum, nudges'], infl['open forum, nudges'])]
     w, h, b = 1660, 520, ''
     L, bx, sc = 520, 540, 900 / 26
@@ -457,6 +458,125 @@ I = lambda v: '\\(' + v + '\\)'
 view, step, rate, gap, share, target, loss = (r'\mathrm{view}', r'\mathrm{step}', r'\mathrm{rate}',
                                                      r'\mathrm{gap}', r'\mathrm{split}', r'\mathrm{target}', r'\mathrm{loss}')
 frac, bias, infl, lr = r'\mathrm{frac}_j', r'\mathrm{bias}', r'\mathrm{infl}', r'\mathrm{lr}'
+
+
+def theory_track_vis():
+    """Mean-square error against the step, sim dots and theory curves (Theorem 1)."""
+    d = res('tracking_theory.json')
+    pts = [r for r in d['track'] if r['rule'] == 'nudge']
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1 = 100, 740, 420, 40
+    lx0, lx1 = math.log(0.004), math.log(0.25)
+    ly0, ly1 = math.log(0.002), math.log(0.08)
+    X = lambda v: X0 + (math.log(v) - lx0) / (lx1 - lx0) * (X1 - X0)
+    Y = lambda v: Y0 - (math.log(v) - ly0) / (ly1 - ly0) * (Y0 - Y1)
+    b += line(X0, Y0, X1, Y0) + line(X0, Y0, X0, Y1)
+    sigma, s = 0.05, 0.5
+    f0 = 1 / (s * math.sqrt(2 * math.pi))
+    cols = {1: GL, 4: GR, 16: '#3D4045', 64: OR}
+    for q, col in cols.items():
+        steps = [math.exp(lx0 + k * (lx1 - lx0) / 80) for k in range(81)]
+        curve = [(st, (q * st * st + sigma ** 2) / (4 * q * st * f0)) for st in steps]
+        curve = [(x, y) for x, y in curve if math.exp(ly0) <= y <= math.exp(ly1)]
+        b += poly([(X(x), Y(y)) for x, y in curve], col, 4)
+        for r in pts:
+            if r['q'] == q and math.exp(lx0) <= r['par'] <= math.exp(lx1) and math.exp(ly0) <= r['sim'] <= math.exp(ly1):
+                b += f'<circle cx="{X(r["par"]):.0f}" cy="{Y(r["sim"]):.0f}" r="8" fill="{col}" stroke="{CARD}" stroke-width="2"/>'
+    for v, lab in ((0.01, '0.01'), (0.03, '0.03'), (0.1, '0.1')):
+        b += text(X(v), Y0 + 32, lab, 24, GR)
+    b += text((X0 + X1) / 2, 482, 'step (log scale)', 26, GR)
+    b += text(X0, 24, 'mean-square error (log scale)', 26, GR, 'start', 700)
+    return svg(w, h, b)
+
+
+def robust_vis():
+    d = res('tracking_theory.json')['robust']
+    val = {(r['case'], r['rule']): r['rmse'] for r in d}
+    cases = [('honest', 'honest'), ('5% at 999x', '5% at 999×'), ('inflated 2.7', 'inflated 2.7×')]
+    w, h, b = 760, 500, ''
+    X0, top, sc = 210, 40, 400 / 0.2
+    for k, (key, lab) in enumerate(cases):
+        y = top + k * 140
+        b += text(X0 - 16, y + 52, lab, 26, DK, 'end', 700)
+        for j, (rule, col) in enumerate((('nudge', OR), ('multiplier', BLUE))):
+            v = val[(key, rule)]
+            wd = min(v, 0.2) * sc
+            b += f'<rect x="{X0}" y="{y + j*50}" width="{wd:.0f}" height="40" rx="6" fill="{col}"/>'
+            lab2 = f'{v:.2f}' if v < 0.2 else f'{v:.1f} →'
+            b += text(X0 + wd + 12, y + j * 50 + 30, lab2, 26, DK, 'start', 800)
+    b += f'<rect x="{X0}" y="460" width="26" height="26" rx="4" fill="{OR}"/>' + text(X0 + 36, 482, 'nudges', 26, DK, 'start', 700)
+    b += text(X0, 22, 'root-mean-square error', 24, GR, 'start', 700)
+    b += f'<rect x="{X0+170}" y="460" width="26" height="26" rx="4" fill="{BLUE}"/>' + text(X0 + 206, 482, 'multipliers', 26, DK, 'start', 700)
+    return svg(w, h, b)
+
+
+def blind_vis():
+    d = res('tracking_theory.json')['blind']
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1, hi = 110, 740, 400, 50, 50
+    Y = lambda v: Y0 - v / hi * (Y0 - Y1)
+    b += line(X0, Y0, X1, Y0)
+    for v in (10, 20, 30, 40, 50):
+        b += line(X0, Y(v), X1, Y(v), '#E3E2DD', 2) + text(X0 - 14, Y(v) + 9, str(v), 24, GR, 'end')
+    gw = (X1 - X0) / len(d)
+    for k, r in enumerate(d):
+        x = X0 + k * gw + gw / 2
+        b += f'<rect x="{x-46:.0f}" y="{Y(r["theory"]):.0f}" width="40" height="{Y0-Y(r["theory"]):.0f}" rx="5" fill="{GL}"/>'
+        b += f'<rect x="{x+6:.0f}" y="{Y(r["sim"]):.0f}" width="40" height="{Y0-Y(r["sim"]):.0f}" rx="5" fill="{OR}"/>'
+        b += text(x, Y0 + 32, f'q={r["q"]}', 24, GR) + text(x, Y0 + 60, f'step={r["step"]}', 22, GR)
+    b += f'<rect x="{X0}" y="466" width="24" height="24" rx="4" fill="{GL}"/>' + text(X0 + 32, 486, 'formula', 24, DK, 'start', 700)
+    b += f'<rect x="{X0+150}" y="466" width="24" height="24" rx="4" fill="{OR}"/>' + text(X0 + 182, 486, 'simulation', 24, DK, 'start', 700)
+    b += text(X0, 28, 'funding to the wrong place (days × share)', 26, GR, 'start', 700)
+    return svg(w, h, b)
+
+
+def tradeoff_vis():
+    """Schematic frontier: misallocated funding against attention."""
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1 = 90, 740, 420, 50
+    X = lambda a: X0 + a * (X1 - X0)
+    Y = lambda e: Y0 - e * (Y0 - Y1)
+    fr = [(a / 100, 0.15 + 0.75 / (1 + 6 * a / 100) ** 1.0) for a in range(0, 101)]
+    pts = [(X(a), Y(e)) for a, e in fr]
+    b += '<polygon points="' + ' '.join(f'{x:.0f},{y:.0f}' for x, y in pts) + f' {X1},{Y1} {X0},{Y1}" fill="{PALE}"/>'
+    b += poly(pts, OR, 6)
+    b += line(X0, Y0, X1, Y0) + line(X0, Y0, X0, Y1)
+    b += text(X(0.62), Y(0.80), 'achievable, but wasteful', 28, DK, 'middle', 700)
+    b += text(X(0.55), Y(0.36), 'frontier', 30, OR, 'start', 800)
+    b += f'<circle cx="{X(0)}" cy="{Y(0.9)}" r="12" fill="{DK}"/>' + text(X(0) + 22, Y(0.9) + 10, 'AI alone', 28, DK, 'start', 800)
+    b += text((X0 + X1) / 2, 470, 'attention (answers per day)', 28, GR)
+    b += text(X0, 30, 'misallocated funding', 26, GR, 'start', 700)
+    return svg(w, h, b)
+
+
+def mech_table():
+    rows = [('AI alone', '—', '—', '—'),
+            ('Open forum, multipliers', 'any pair', 'volunteers', 'multiplier'),
+            ('Open forum, nudges', 'any pair', 'volunteers', 'nudge'),
+            ('Random members, multipliers', 'pairs by share', 'random, recused', 'multiplier'),
+            ('Random pairs', 'uniform pairs', 'random, recused', 'nudge'),
+            ('Share-weighted', 'pairs by share', 'random, recused', 'nudge'),
+            ('Flag and sample', '½ by flags, ½ by share', 'random, recused', 'nudge'),
+            ('Flag, sample, escalate', 'as above; flagged often: a panel', 'random, recused', 'nudge')]
+    h = '<table class="mt"><tr><th>mechanism</th><th>which questions</th><th>who answers</th><th>answer</th></tr>'
+    for r in rows:
+        h += '<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>'
+    return h + '</table>'
+
+
+def prop_table():
+    Y, N = '<span class="yes">✓</span>', '<span class="no">✗</span>'
+    rows = [('Open forum, multipliers', N, N, N, N),
+            ('Open forum, nudges', Y, Y, N, Y),
+            ('Random members, multipliers', N, N, Y, N),
+            ('Random pairs, share-weighted', Y, Y, Y, Y),
+            ('Flag and sample (± escalation)', Y, Y, Y, Y)]
+    h = ('<table class="mt pt"><tr><th>mechanism</th><th>bounded influence<br><small>Prop. 1</small></th>'
+         '<th>exaggeration-proof<br><small>Prop. 4</small></th><th>capture-proof<br><small>Prop. 3</small></th>'
+         '<th>outlier-robust<br><small>Thm. 2</small></th></tr>')
+    for r in rows:
+        h += '<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>'
+    return h + '</table>'
 
 
 def thm(label, title, box, why, vis, caption='', stack=False, pic_h=None):
@@ -536,6 +656,29 @@ S(thm('Model', 'Objective',
       '<p>A problem costs its size times how long it lasts.</p>',
       excess_vis(), 'One project; the shaded area is funding paid to the wrong place.'))
 
+S(thm('Desired properties', 'Accuracy for attention, and robustness',
+      f"""<p><b>Accuracy:</b> little misallocated funding.</p>
+<p><b>Economy:</b> few answers per day.</p>
+<p>They conflict; the <b>frontier</b>: best accuracy per attention budget.</p>
+<p><b>Robustness:</b> bounded influence per answer; bigger typed numbers change nothing; no capture by maintainers.</p>""",
+      '<p>We look for mechanisms on the frontier that are also robust.</p>',
+      tradeoff_vis(), 'Illustration.'))
+
+S(f'''<section class="slide light">
+  <p class="eyebrow">Mechanisms</p>
+  <h2>What a mechanism decides</h2>
+  <p class="sub">Each mechanism also fixes the attention budget and the step (or learning rate).</p>
+  {mech_table()}
+</section>''')
+
+S(f'''<section class="slide light">
+  <p class="eyebrow">Mechanisms</p>
+  <h2>Flag, sample, nudge, escalate</h2>
+  <p class="sub">Interested people may point at problems; uninvolved people decide how much to move.</p>
+  {policy_vis()}
+  <p class="why">Its rules are parameters of the constitution: the step, the mix of flags and shares, the daily cap, the escalation threshold.</p>
+</section>''')
+
 S(thm('Observation', 'Nudges settle where answers balance',
       f"""<p>A pair’s ratio stops moving when “more” and “less” are equally likely: at the ratio the median member wants.</p>
 <p>Formally, with small steps, nudges descend a convex loss: the expected distance, on a log scale, between wanted and current ratios, weighted by how often each pair is asked.</p>""",
@@ -555,7 +698,7 @@ S(thm('Proposition 2', 'The agenda is not the verdict',
       '<p>Each pair settles at its own median. If these medians clash, the question rates decide (right).</p>',
       AG, 'Simulation with clashing medians: in logs, 1 for pairs (1,2) and (2,3) but 0 for (1,3).'))
 
-S(thm('Proposition 3', 'Maintainers set the overlooked projects',
+S(thm('Proposition 3', 'Open forums let maintainers capture',
       f"""<p>Suppose a fraction {I(frac)} of the answers about project {I('j')} come from its maintainers, who want {I('j')} higher by a factor {I(r'e^{' + bias + '}')}.</p>
 <p>Then {I('j')}’s resting share grows with {I(frac)}, up to that factor above the consensus.</p>""",
       f"<p>Recusal sets {I(frac + ' = 0')}; without it, {I(frac + r' \approx 1')} for projects nobody else looks at.</p>",
@@ -569,28 +712,49 @@ S(thm('Proposition 4', 'Exaggeration moves multipliers, not nudges',
       EX, f"Nine wanted ratios, one extreme; {I(infl + ' = 2.7')}, the simulation’s value."))
 
 S(f'''<section class="slide light">
-  <p class="eyebrow">Policy</p>
-  <h2>Flag, sample, nudge, escalate</h2>
-  <p class="sub">Interested attention is safe as an agenda and harmful as a verdict (Propositions 2 and 3).</p>
-  {policy_vis()}
-  <p class="why">Each rule is a parameter of the constitution. Step and agenda change the speed; recusal and format change where the split rests.</p>
+  <p class="eyebrow">Properties</p>
+  <h2>Which mechanisms are robust</h2>
+  <p class="sub">Random, recused members answering with nudges have all four properties.</p>
+  {prop_table()}
 </section>''')
+
+S(thm('Theorem 1', 'The trade-off for nudges',
+      f"""<p>One pair, questions at rate {I('q')}. The median wanted log-ratio drifts with volatility {I(r'\mathrm{vol}')}; answer noise has density {I(r'\mathrm{dens}')} at zero.</p>
+<p>With small steps, the mean-square error of nudges is about</p>
+<p class="eq">{I(r'\displaystyle\frac{q \cdot ' + step + r'^2 + \mathrm{vol}^2}{4 \cdot q \cdot ' + step + r' \cdot \mathrm{dens}}')}</p>
+<p>The best step is {I(r'\mathrm{vol}/\sqrt{q}')}.</p>""",
+      '',
+      theory_track_vis(), "Dots: simulation; curves: formula; light to orange: 1, 4, 16, 64 answers a day."))
+
+S(thm('Theorem 2', 'Nudges lose little, and are robust',
+      f"""<p>Same setting, multipliers with learning rate {I(lr)}, answer variance {I(r'\mathrm{noise}^2')}: the best error is about {I(r'\mathrm{vol} \cdot \mathrm{noise}/\sqrt{q}')}</p>
+<p>For normal noise, the best error of nudges is only {I(r'\sqrt{\pi/2} \approx 1.25')} times larger.</p>
+<p>With answers at the cap, or inflated typing, multipliers break; nudges barely change.</p>""",
+      '<p>Mean versus median: a little efficiency for a lot of robustness.</p>',
+      robust_vis(), 'Simulation, 16 answers a day; each rule with its best step for honest answers.'))
+
+S(thm('Proposition 5', 'The cost of a blind spot',
+      f"""<p>A project with share {I('s')} is over-funded by a factor {I(r'e^{\mathrm{err}}')}, with {I(r'\mathrm{err}')} large next to the noise.</p>
+<p>If it is noticed after expected time {I(r'1/\mathrm{notice}')} and then asked about at rate {I('q')}, then the funding to the wrong place is about</p>
+<p class="eq">{I(r'\displaystyle s \cdot \Big(\frac{e^{\mathrm{err}} - 1}{\mathrm{notice}} + \frac{e^{\mathrm{err}} - 1 - \mathrm{err}}{q \cdot ' + step + r'}\Big)')}</p>""",
+      f"<p>Once noticed, every answer points the same way: the log error falls at speed {I('q \\cdot ' + step)}.</p>",
+      blind_vis(), f"{I(r'\mathrm{err} = 1.5')} (4.5×); noise sd 0.3; notice rates 0.1 to 1 a day."))
 
 FR, fs, eng = frontier_vis()
 at = {round(a): e for a, e in fs}
-S(thm('Simulation', 'Five answers a day halve the AI’s error',
-      f"<p>With flag and sample, {at[5]:.1f}% of the funding is misallocated at 5 answered questions a day and {at[10]:.1f}% at 10; with the AI alone, {eng:.1f}%.</p>",
-      '', FR, 'Simulation: 98 repos of the round; AI off by about 4.5× on 10% of them; 150 members, 50 maintainers; 12 runs of 180 days.', stack=True, pic_h=430))
+S(thm('Simulation', 'Flag and sample is on the frontier',
+      f"<p>At every attention budget, flag and sample (with escalation at the lowest) misallocates the least: {at[5]:.1f}% at 5 answers a day, {at[10]:.1f}% at 10; the AI alone, {eng:.1f}%.</p>",
+      '', FR, 'The 98 repos of the round; AI off by about 4.5× on 10% of them; 150 members, 50 maintainers; 12 runs of 180 days. Dashed: share-weighted. Same picture in a skewed world and with fewer blind spots.', stack=True, pic_h=430))
 
 DS, rows = designs_vis()
 r = lambda k: rows[k]['error'][0] * 100
-S(thm('Simulation', 'Ask uninvolved members for a direction',
-      f"<p>At about 12 answers a day, random members with nudges leave {r('random members, nudges'):.1f}% misallocated ({r('random members, nudges, flags'):.1f}% with flags); an open forum, {r('open forum, nudges'):.1f}%, with {rows['open forum, nudges']['capture'][0]*100:.1f}% captured.</p>",
-      '', DS, 'Simulation, same world. Recusal removes capture; multipliers do not improve on the AI.', stack=True, pic_h=430))
+S(thm('Simulation', 'At equal attention, robust mechanisms win',
+      f"<p>At about 12 answers a day: flag and sample {r('flag and sample'):.1f}%, share-weighted {r('share-weighted'):.1f}%; an open forum with nudges {r('open forum, nudges'):.1f}%, with {rows['open forum, nudges']['capture'][0]*100:.1f}% captured by maintainers.</p>",
+      '', DS, 'Simulation, same world, each mechanism with its best step. Multipliers do not improve on the AI.', stack=True, pic_h=430))
 
 IV, ilo, ihi, ieng = inflated_vis()
 S(thm('Simulation', 'If judgments are inflated, humans stop helping',
-      f"<p>If judgments themselves are inflated by 2.7, then every human channel leaves between {ilo:.1f}% and {ihi:.1f}% misallocated, against {ieng:.1f}% for the AI alone.</p>",
+      f"<p>If what members believe is itself inflated by 2.7, then every mechanism leaves between {ilo:.1f}% and {ihi:.1f}% misallocated, against {ieng:.1f}% for the AI alone.</p>",
       '', IV, 'Simulation, same world; the inflation is in what members believe, not in how they type.', stack=True, pic_h=430))
 
 S(f'''<section class="slide light">
@@ -604,10 +768,11 @@ S('''<section class="slide dark">
   <p class="eyebrow">Summary</p>
   <h2>Interested attention as agenda, never as verdict</h2>
   <div class="rows ruled">
-    <div class="row"><span class="n">1</span><p>Nudges rest at medians; the agenda only sets the speed</p></div>
-    <div class="row"><span class="n">2</span><p>The policy halves the AI’s error at 5 answers a day</p></div>
-    <div class="row"><span class="n">3</span><p>Open: inflated judgments, or only inflated typing?</p></div>
-    <div class="row"><span class="n">4</span><p>Next: an adversarial AI; steering the constitution</p></div>
+    <div class="row"><span class="n">1</span><p>Nudges rest at medians: robust, at little cost in accuracy</p></div>
+    <div class="row"><span class="n">2</span><p>Quadrupling attention halves the mean-square error</p></div>
+    <div class="row"><span class="n">3</span><p>Flag and sample is on the frontier at every budget</p></div>
+    <div class="row"><span class="n">4</span><p>Open: inflated beliefs, or only inflated typing?</p></div>
+    <div class="row"><span class="n">5</span><p>Next: an adversarial AI; steering the constitution</p></div>
   </div>
 </section>''')
 
@@ -637,6 +802,13 @@ STYLE = '''<style>
 .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-block: auto; }
 .facts .box { font-size: 36px; border-radius: 18px; border-left: none; border-top: 10px solid var(--orange); }
 .facts .k { font-weight: 800; color: var(--orange); font-size: 40px; }
+.mt { border-collapse: collapse; font-size: 30px; margin-top: 10px; width: 100%; }
+.mt th { text-align: left; color: var(--gray); font-weight: 700; font-size: 28px; padding: 10px 18px; border-bottom: 3px solid var(--gray-light); }
+.mt td { padding: 9px 18px; border-bottom: 2px solid #E3E2DD; }
+.mt td:first-child { font-weight: 700; }
+.pt td, .pt th { text-align: center; } .pt td:first-child, .pt th:first-child { text-align: left; }
+.pt small { font-weight: 400; font-size: 24px; }
+.yes { color: #2E8B57; font-weight: 800; font-size: 40px; } .no { color: #C0392B; font-weight: 800; font-size: 40px; }
 .rw { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 36px; margin-top: 10px; }
 .rw .box { background: var(--card); border: 3px solid var(--gray-light); border-radius: 24px; padding: 26px 32px; }
 .rw h3 { font-size: 40px; margin: 0 0 8px; }
