@@ -51,53 +51,88 @@ def ncdf(x):
 
 
 # ---------- pictures ----------
-def motivation_vis():
-    """Four days of a living split: the engine re-splits daily, errs on one project
-    (orange); on day 3 a member checks that project against another and nudges it."""
-    base = [0.20, 0.17, 0.15, 0.13, 0.11, 0.09, 0.08, 0.07]
-    drift = [[0, 0, 0, 0, 0, 0, 0, 0], [.01, -.01, 0, .01, 0, -.01, 0, 0],
-             [.015, -.01, .005, 0, .005, -.01, 0, -.005], [.01, -.005, .01, -.005, .005, -.01, .005, -.01]]
-    blind = 2
-    w, h, b = 1660, 560, ''
-    pw, gapw, X00, Y0, H = 330, 113, 0, 470, 1400
-    for d in range(4):
-        x0 = X00 + d * (pw + gapw)
-        b += f'<rect x="{x0}" y="60" width="{pw}" height="440" rx="20" fill="{CARD}" stroke="{GL}" stroke-width="2"/>'
-        b += text(x0 + pw / 2, 40, f'day {d+1}', 32, GR, weight=700)
-        for k, v in enumerate(base):
-            v = v + drift[d][k] + (0.08 if k == blind and d < 3 else (0.0 if k == blind else 0))
-            hh = v * H
-            bx = x0 + 25 + k * 37
-            b += f'<rect x="{bx}" y="{Y0 - hh:.0f}" width="28" height="{hh:.0f}" rx="4" fill="{OR if k == blind else GR}"/>'
-        if d < 3:
-            ax = x0 + pw + 12
-            b += f'<path d="M{ax} 270 l58 0 l0 -16 l30 24 l-30 24 l0 -16 l-58 0 Z" fill="{GL}"/>'
-            b += text(ax + 44, 330, 'engine', 26, GR, weight=700)
-        if d == 2:
-            hx = x0 + 25 + blind * 37 + 14
-            b += head(hx, 100, 16, BLUE)
-            b += f'<path d="M{hx-10} 150 l20 0 l0 26 l12 0 l-22 26 l-22 -26 l12 0 Z" fill="{BLUE}"/>'
-            b += text(x0 + 25, 535, 'a member checks it and nudges', 26, BLUE, 'start', 800)
-    b += text(X00 + 25 + blind * 37 + 14, 535, 'the engine errs here', 26, OR, 'start', 800)
+def excess_series():
+    """The engine over-funds one project from time 20; a member notices at 55
+    and nudges it back in four steps."""
+    ts = [k / 2 for k in range(201)]
+    def e(t):
+        if t < 20: return 0.0
+        v = min(0.12, 0.12 * (t - 20) / 5)
+        for tn in (55, 62, 69, 76):
+            if t >= tn: v -= 0.03
+        return max(v, 0.0)
+    return ts, [e(t) for t in ts]
+
+
+def flow_vis(annotated=True, w=1660):
+    ts, es = excess_series()
+    others = [0.24, 0.20, 0.16, 0.12, 0.08]
+    h, b = 560 if annotated else 470, ''
+    X0, X1, Yb, Yt = 40, w - 40, 470 if annotated else 420, 70 if annotated else 30
+    X = lambda t: X0 + t / 100 * (X1 - X0)
+    Y = lambda v: Yb - v * (Yb - Yt)
+    b += f'<defs><pattern id="hatch{w}" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' \
+         f'<rect width="14" height="14" fill="{PALE}"/><line x1="0" y1="0" x2="0" y2="14" stroke="{OR}" stroke-width="7"/></pattern></defs>'
+    layers = []                                   # cumulative boundaries, bottom to top
+    for t, e in zip(ts, es):
+        z = 1 + 1.6 * e
+        cuts = [0.20 / z, (0.20 + 1.6 * e) / z]
+        acc = cuts[-1]
+        for o in others:
+            acc += o / z; cuts.append(acc)
+        layers.append(cuts)
+    fills = [OR, f'url(#hatch{w})', '#6E7277', '#9A9DA2', '#7F8388', '#AEB1B5', '#8C9095']
+    for L in range(len(fills)):
+        lo = [0.0 if L == 0 else c[L - 1] for c in layers]
+        hi = [c[L] for c in layers]
+        pts = [(X(t), Y(v)) for t, v in zip(ts, hi)] + [(X(t), Y(v)) for t, v in zip(reversed(ts), reversed(lo))]
+        b += '<polygon points="' + ' '.join(f'{x:.1f},{y:.1f}' for x, y in pts) + f'" fill="{fills[L]}"/>'
+    b += line(X0, Yb, X1, Yb, DK, 3)
+    b += f'<path d="M{X1-4} {Yb-10} l18 10 l-18 10 Z" fill="{DK}"/>' + text(X1, Yb + 40, 'time', 28, GR, 'end', 700)
+    if annotated:
+        b += text(X(22), Yt - 30, 'the engine starts to over-fund one project', 28, OR, 'start', 800)
+        b += head(int(X(55)), Yb + 30, 14, BLUE)
+        b += text(X(55) + 30, Yb + 72, 'a member notices and nudges', 28, BLUE, 'start', 800)
+        b += f'<rect x="{X0}" y="{Yb + 50}" width="28" height="28" fill="url(#hatch{w})"/>' + text(X0 + 40, Yb + 74, 'funding to the wrong place', 28, DK, 'start', 700)
+    else:
+        x = X(40)
+        b += line(x, Yt - 10, x, Yb, DK, 4) + text(x + 12, Yt + 30, 'split at time t', 28, LT, 'start', 800)
+        b += text(X0, Yb + 40, 'shares of the funding flow', 26, GR, 'start', 700)
     return svg(w, h, b)
 
 
-def engine_vis():
-    """Two days: the engine maps one allocation to the next."""
-    base = [0.20, 0.17, 0.23, 0.13, 0.11, 0.09, 0.07]
-    nxt = [0.21, 0.16, 0.23, 0.14, 0.10, 0.09, 0.07]
-    w, h, b = 760, 460, ''
-    for d, vals in enumerate((base, nxt)):
-        x0 = d * 430
-        b += f'<rect x="{x0}" y="60" width="330" height="340" rx="20" fill="{CARD}" stroke="{GL}" stroke-width="2"/>'
-        b += text(x0 + 165, 40, f'day {"t" if d == 0 else "t + 1"}', 30, GR, weight=700)
-        for k, v in enumerate(vals):
-            hh = v * 1100
-            b += f'<rect x="{x0 + 30 + k*40}" y="{380 - hh:.0f}" width="30" height="{hh:.0f}" rx="4" fill="{OR if k == 2 else GR}"/>'
-        b += text(x0 + 165, 440, 'share of each project', 26, GR)
-    b += f'<path d="M342 230 l40 0 l0 -16 l30 24 l-30 24 l0 -16 l-40 0 Z" fill="{GL}"/>'
-    b += text(378, 300, 'engine', 26, GR, weight=700)
-    b += text(530 + 2 * 40 + 15, 105, 'blind spot', 26, OR, 'middle', 800)
+def notice_vis():
+    taus = [k / 20 for k in range(201)]
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1 = 90, 740, 420, 50
+    X = lambda t: X0 + t / 10 * (X1 - X0)
+    Y = lambda p: Y0 - p * (Y0 - Y1)
+    b += line(X0, Y0, X1, Y0) + line(X0, Y0, X0, Y1)
+    b += poly([(X(t), Y(1 - math.exp(-0.25 * t))) for t in taus], GR, 5)
+    b += poly([(X(t), Y(1 - math.exp(-0.04 * t * t))) for t in taus], OR, 6)
+    b += text(X(2.8), Y(1 - math.exp(-0.7)) - 18, 'constant rate', 28, GR, 'end', 700)
+    b += text(X(3.3), Y(1 - math.exp(-0.04 * 3.3 ** 2)) + 40, 'rate grows with age', 28, OR, 'start', 800)
+    b += text(X0 - 14, Y(0) + 10, '0', 26, GR, 'end') + text(X0 - 14, Y(1) + 10, '1', 26, GR, 'end')
+    b += text((X0 + X1) / 2, 470, 'age of the problem', 28, GR)
+    b += text(X0, 30, 'probability it was noticed', 26, GR, 'start', 700)
+    return svg(w, h, b)
+
+
+def excess_vis():
+    ts, es = excess_series()
+    sh = [(0.20 + e) / (1 + e) for e in es]
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1, lo, hi = 90, 740, 420, 60, 0.15, 0.31
+    X = lambda t: X0 + t / 100 * (X1 - X0)
+    Y = lambda v: Y0 - (v - lo) / (hi - lo) * (Y0 - Y1)
+    pts = [(X(t), Y(v)) for t, v in zip(ts, sh)] + [(X(ts[-1]), Y(0.2)), (X(0), Y(0.2))]
+    b += '<polygon points="' + ' '.join(f'{x:.1f},{y:.1f}' for x, y in pts) + f'" fill="{PALE}"/>'
+    b += line(X0, Y0, X1, Y0) + line(X0, Y0, X0, Y1)
+    b += line(X0, Y(0.2), X1, Y(0.2), DK, 4, 'stroke-dasharray="12 8"') + text(X1, Y(0.2) + 40, 'target share', 28, DK, 'end', 700)
+    b += poly([(X(t), Y(v)) for t, v in zip(ts, sh)], OR, 6)
+    b += text(X(36), Y(0.29) - 10, 'share', 28, OR, 'middle', 800)
+    b += text(X(40), Y(0.23), 'paid to the wrong place', 26, DK, 'middle', 700)
+    b += text((X0 + X1) / 2, 470, 'time', 28, GR)
     return svg(w, h, b)
 
 
@@ -448,9 +483,9 @@ S = slides.append
 
 S(f'''<section class="slide light">
   <p class="eyebrow">Motivation</p>
-  <h2>An AI keeps re-splitting a fund</h2>
-  <p class="sub">The community should keep the split on course, but few of its members look.</p>
-  <div class="vis">{motivation_vis()}</div>
+  <h2>An AI splits a stream of funding</h2>
+  <p class="sub">Money flows all the time; when the split goes wrong, someone should notice.</p>
+  <div class="vis">{flow_vis()}</div>
 </section>''')
 
 S('''<section class="slide light">
@@ -465,24 +500,30 @@ S('''<section class="slide light">
   </div>
 </section>''')
 
-S(thm('Model', 'A living allocation',
-      f"""<p>Projects {I(r'1, \dots, m')}; days {I(r't = 0, 1, 2, \dots')}</p>
-<p><b>Allocation</b> {I(share + '_t')}: shares of the fund, {I(share + r'_t(j) \ge 0')}, {I(r'\sum_j ' + share + '_t(j) = 1')}.</p>
-<p><b>Engine:</b> moves the allocation every day.</p>
-<p><b>Gap</b> of projects {I('a, b')}: {I(gap + r'_{ab} = \log \tfrac{' + share + '(a)}{' + share + '(b)}')}.</p>""",
+S(thm('Model', 'Continuous funding',
+      f"""<p>Projects {I(r'1, \dots, m')}; time {I(r't \ge 0')}.</p>
+<p>Funding flows at rate 1; at time {I('t')}, project {I('j')} gets the share {I(share + '_t(j)')} (shares sum to 1).</p>
+<p><b>Engine:</b> sets the split {I(share + '_t')} at every moment.</p>
+<p><b>Gap</b> of projects {I('a, b')}: {I(gap + r'_{ab} = \log \tfrac{' + share + '(a)}{' + share + '(b)}')}</p>""",
       '<p>First, a benevolent engine: it follows the world, but errs persistently on some projects.</p>',
-      engine_vis()))
+      flow_vis(False, 760)))
 
-S(thm('Model', 'Members: views, questions, flags',
-      f"""<p>Members {I(r'1, \dots, n')}; <b>view</b> {I(view + '_i')}: the allocation {I('i')} considers right.</p>
-<p><b>Judged gap:</b> {I(r'd_{i,ab} = \log \tfrac{' + view + '_i(a)}{' + view + r'_i(b)} + \text{noise}')}.</p>
-<p><b>Question</b> to {I('i')} on {I('a, b')}: shows their shares; the answer is {I(r'\operatorname{sign}(d_{i,ab} - ' + gap + '_{ab})')}.</p>
-<p><b>Flag:</b> a project marked too low or too high.</p>""",
-      '<p>Some members maintain a project. <b>Attention</b>: answered questions; flags are nearly free.</p>',
+S(thm('Model', 'Members notice problems',
+      f"""<p>Members {I(r'1, \dots, n')}; <b>view</b> {I(view + '_i')}: the split {I('i')} considers right. Some maintain a project.</p>
+<p><b>Noticing:</b> member {I('i')} looks at project {I('j')} at random times, at rate {I(r'\mathrm{notice}_{ij}(t)')}; it may grow with how wrong {I('j')} is, and for how long.</p>
+<p><b>Flag:</b> on noticing, {I('i')} may mark {I('j')} as too low or too high.</p>""",
+      '<p>The chance that a problem is still unnoticed falls with its age.</p>',
+      notice_vis(), 'Illustration: one problem, many members.'))
+
+S(thm('Model', 'Members answer questions',
+      f"""<p><b>Judged gap:</b> {I(r'd_{i,ab} = \log \tfrac{' + view + '_i(a)}{' + view + r'_i(b)} + \text{noise}')}</p>
+<p><b>Question</b> to {I('i')} on {I('a, b')}: shows their shares; the answer is {I(r'\operatorname{sign}(d_{i,ab} - ' + gap + '_{ab})')}</p>
+<p><b>Attention:</b> answered questions per unit of time.</p>""",
+      '<p>Flags are nearly free; answers cost attention.</p>',
       card_vis()))
 
 S(thm('Model', 'A constitution turns answers into moves',
-      f"""<p><b>Constitution:</b> rates {I(rate + '_{ab}')} of asking pairs, whom to ask, the update.</p>
+      f"""<p><b>Constitution:</b> questions on {I('a, b')} arrive at rate {I(rate + '_{ab}')} (may depend on flags); whom to ask; the update.</p>
 <p>{I('d_{ab}')}: the judged gap of the member asked about {I('a, b')}.</p>
 <p><b>Nudge:</b> answer {I('s')} multiplies {I(r'\tfrac{' + share + '(a)}{' + share + '(b)}')} by {I(r'e^{s \cdot ' + step + '}')}</p>
 <p><b>Multiplier</b> (the round’s): typed ratio {I('x')}; {I(gap + '_{ab}')} moves by {I(lr + r'\cdot(\log x - ' + gap + '_{ab})')}</p>""",
@@ -490,13 +531,13 @@ S(thm('Model', 'A constitution turns answers into moves',
       formats_vis(), f"A nudge uses an answer’s direction, a multiplier its size. {I(step + '=0.1')}, {I(lr + '=0.3')}."))
 
 S(thm('Model', 'Objective',
-      f"""<p><b>Target</b> {I(target)}: for every pair {I('a, b')},</p>
-<p class="eq">{I(r'\log \tfrac{' + target + '(a)}{' + target + r'(b)} = \operatorname{median}_i\, d_{i,ab}')}</p>
-<p><b>Misallocation</b> on day {I('t')}, the fraction of the fund in the wrong place:</p>
-<p class="eq">{I(r'\tfrac12 \textstyle\sum_j |' + share + '_t(j) - ' + target + '(j)|')}</p>
-<p><b>Goal:</b> low misallocation for little attention.</p>""",
-      '<p>Also watched: capture (share won by maintainers) and shortchanged projects (below half their target).</p>',
-      misalloc_vis(), 'Illustration with ten projects.'))
+      f"""<p><b>Target</b> {I(target + '_t')}: for every pair {I('a, b')},</p>
+<p class="eq">{I(r'\log \tfrac{' + target + '_t(a)}{' + target + r'_t(b)} = \operatorname{median}_i\, d_{i,ab}')}</p>
+<p><b>Misallocated funding</b> up to time {I('T')}:</p>
+<p class="eq">{I(r'\int_0^T \tfrac12 \textstyle\sum_j |' + share + '_t(j) - ' + target + r'_t(j)|\, dt')}</p>
+<p><b>Goal:</b> little misallocated funding for little attention.</p>""",
+      '<p>A problem costs its size times how long it lasts.</p>',
+      excess_vis(), 'One project; the shaded area is funding paid to the wrong place.'))
 
 S(thm('Observation', 'Nudges minimize a loss at the median',
       f"""<p>In the small-step limit, nudges follow the gradient flow of</p>
@@ -541,7 +582,7 @@ S(f'''<section class="slide light">
 FR, fs, eng = frontier_vis()
 at = {round(a): e for a, e in fs}
 S(thm('Simulation', 'Five answers a day halve the engine’s error',
-      f"<p>With flag and sample, the misallocation is {at[5]:.1f}% at 5 answered questions a day and {at[10]:.1f}% at 10; the engine alone leaves {eng:.1f}%.</p>",
+      f"<p>With flag and sample, {at[5]:.1f}% of the funding is misallocated at 5 answered questions a day and {at[10]:.1f}% at 10; with the engine alone, {eng:.1f}%.</p>",
       '', FR, 'Simulation: 98 repos of the round; engine off by about 4.5× on 10% of them; 150 members, 50 maintainers; 12 runs of 180 days.', stack=True, pic_h=430))
 
 DS, rows = designs_vis()
