@@ -90,7 +90,7 @@ def flow_vis(annotated=True, w=1660):
     b += line(X0, Yb, X1, Yb, DK, 3)
     b += f'<path d="M{X1-4} {Yb-10} l18 10 l-18 10 Z" fill="{DK}"/>' + text(X1, Yb + 40, 'time', 28, GR, 'end', 700)
     if annotated:
-        b += text(X(22), Yt - 30, 'the engine starts to over-fund one project', 28, OR, 'start', 800)
+        b += text(X(22), Yt - 30, 'the AI starts to over-fund one project', 28, OR, 'start', 800)
         b += head(int(X(55)), Yb + 30, 14, BLUE)
         b += text(X(55) + 30, Yb + 72, 'a member notices and nudges', 28, BLUE, 'start', 800)
         b += f'<rect x="{X0}" y="{Yb + 50}" width="28" height="28" fill="url(#hatch{w})"/>' + text(X0 + 40, Yb + 74, 'funding to the wrong place', 28, DK, 'start', 700)
@@ -168,13 +168,13 @@ def formats_vis():
     Y = lambda g: Y0 - (g - lo) / (hi - lo) * (Y0 - Y1)
     b += line(X0, Y0, X1, Y0) + line(X0, Y0, X0, Y1)
     b += line(X0, Y(truth), X1, Y(truth), GL, 3, 'stroke-dasharray="10 8"')
-    b += text(X1, Y(truth) - 14, 'median judged gap', 26, GR, 'end')
+    b += text(X1, Y(truth) - 14, 'median wanted ratio', 26, GR, 'end')
     b += poly([(X(t), Y(g)) for t, g in enumerate(mul)], BLUE, 5)
     b += poly([(X(t), Y(g)) for t, g in enumerate(nud)], OR, 6)
-    b += text(X1, Y(max(mul)) - 4, 'multiplier: one 999× answer', 28, BLUE, 'end', 700)
+    b += text(X(15) + 18, Y(max(mul)) + 30, 'multiplier: one 999× answer', 26, BLUE, 'start', 700)
     b += text(X(8), Y(nud[8]) + 50, 'nudge', 30, OR, 'middle', 800)
     b += text((X0 + X1) / 2, 500, 'answers', 28, GR) + text(X0 - 14, Y(0) + 10, '0', 26, GR, 'end') + text(X0 - 14, Y(2) + 10, '2', 26, GR, 'end')
-    b += text(X0, 26, 'gap (log-ratio)', 26, GR, 'start', 700)
+    b += text(X0, 26, 'ratio of a to b (log scale)', 26, GR, 'start', 700)
     return svg(w, h, b)
 
 
@@ -226,8 +226,8 @@ def loss_vis():
     b += text(X(med), Y(el(med)) - 44, 'median: minimum', 28, DK, 'middle', 800)
     b += line(X(mean), Y0, X(mean), Y0 - 60, BLUE, 4)
     b += text(X(mean) + 12, Y0 - 70, 'mean', 28, BLUE, 'start', 700)
-    b += text((X0 + X1) / 2, 490, 'gap', 28, GR)
-    b += text(X0, 30, 'expected |judged gap − gap|', 26, GR, 'start', 700)
+    b += text((X0 + X1) / 2, 490, 'current ratio (log scale)', 28, GR)
+    b += text(X0, 30, 'expected distance to wanted ratios', 26, GR, 'start', 700)
     return svg(w, h, b)
 
 
@@ -254,7 +254,7 @@ def bound_vis():
     b += text(X(9.6), Y(g) - 16, 'typical', 28, GR, 'end', 700)
     b += text(X1, Y(1.0) - 16, 'ratio × e ≈ 2.7', 30, DK, 'end', 800)
     b += text((X0 + X1) / 2, 490, 'answers in one day', 28, GR)
-    b += text(X0, 30, 'change of log-ratio', 26, GR, 'start', 700)
+    b += text(X0, 30, 'change of ratio (log scale)', 26, GR, 'start', 700)
     return svg(w, h, b)
 
 
@@ -294,7 +294,7 @@ def agenda_vis():
     b += text((X0 + X1) / 2, Y(2) + 50, 'ask mostly about (1,2) and (2,3)', 28, OR, 'middle', 800)
     b += text((X0 + X1) / 2, Y(0) - 40, 'ask mostly about (1,3)', 28, BLUE, 'middle', 800)
     b += text((X0 + X1) / 2, 490, 'answers', 28, GR)
-    b += text(X0, 30, 'gap between projects 1 and 3', 26, GR, 'start', 700)
+    b += text(X0, 30, 'ratio of projects 1 and 3 (log scale)', 26, GR, 'start', 700)
     return svg(w, h, b), round(out['mostly (1,3)'][-1], 2), round(out['mostly the others'][-1], 2)
 
 
@@ -320,7 +320,7 @@ def mixture_vis(bias=1.0, sd=0.71):
     b += text(X0 - 14, Y(0) + 10, '0', 26, GR, 'end') + text(X0 - 14, Y(1) + 10, '1', 26, GR, 'end')
     b += text(X(0) , 488, '0', 26, GR) + text(X(1), 488, '1', 26, GR)
     b += text((X0 + X1) / 2, 490, 'fraction of answers from maintainers', 28, GR)
-    b += text(X0, 30, 'resting gap above consensus', 26, GR, 'start', 700)
+    b += text(X0, 30, 'resting ratio above consensus (log)', 26, GR, 'start', 700)
     return svg(w, h, b)
 
 
@@ -340,7 +340,7 @@ def exaggeration_vis(infl=2.7):
         b += f'<rect x="{X(g)-4:.0f}" y="140" width="8" height="120" rx="4" fill="{col}"/>'
         b += text(X(g) + dx, y, lab, 30, col, anchor, 800)
     b += text(X(0), 380, '0', 26, GR) + text(X(1), 380, '1', 26, GR) + text(X(2), 380, '2', 26, GR) + text(X(3), 380, '3', 26, GR)
-    b += text(390, 410, 'judged gap of one pair (log-ratio)', 26, GR)
+    b += text(390, 410, 'wanted ratio of one pair (log scale)', 26, GR)
     return svg(w, h, b), med, mean
 
 
@@ -365,7 +365,7 @@ def frontier_vis():
         b += text(X(a), Y0 + 38, str(a), 26, GR)
     b += text(X1, Y0 + 70, 'answered questions per day (log scale)', 26, GR, 'end')
     b += line(X0, Y(eng), X1, Y(eng), DK, 4, 'stroke-dasharray="14 10"')
-    b += text(X0 + 10, Y(eng) - 14, f'engine alone: {eng:.1f}%', 28, DK, 'start', 800)
+    b += text(X0 + 10, Y(eng) - 14, f'AI alone: {eng:.1f}%', 28, DK, 'start', 800)
     b += poly([(X(a), Y(e)) for a, e in rp], GR, 4)
     b += ''.join(f'<circle cx="{X(a):.0f}" cy="{Y(e):.0f}" r="8" fill="{GR}"/>' for a, e in rp)
     b += poly([(X(a), Y(e)) for a, e in fs], OR, 6)
@@ -385,7 +385,7 @@ def frontier_vis():
 def designs_vis():
     d = res('steering_tuned_base.json')
     eng = res('frontier_base.json')['engine only|0']
-    rows = [('engine alone', eng, DK),
+    rows = [('AI alone', eng, DK),
             ('open forum, multipliers', d['open forum, multipliers'], GR),
             ('open forum, nudges', d['open forum, nudges'], GR),
             ('random members, multipliers', d['panel, multipliers'], GR),
@@ -422,7 +422,7 @@ def inflated_vis():
         b += f'<rect x="{bx}" y="{y}" width="{eb*sc:.0f}" height="40" rx="6" fill="{OR}"/>' + text(bx + eb * sc + 14, y + 32, f'{eb:.1f}%', 28, DK, 'start', 800)
         b += f'<rect x="{bx}" y="{y+46}" width="{ei*sc:.0f}" height="40" rx="6" fill="{BLUE}"/>' + text(bx + ei * sc + 14, y + 78, f'{ei:.1f}%', 28, DK, 'start', 800)
     x = bx + eng * sc
-    b += line(x, 20, x, 470, DK, 4, 'stroke-dasharray="12 8"') + text(x + 14, 506, f'engine alone: {eng:.1f}%', 28, DK, 'start', 800)
+    b += line(x, 20, x, 470, DK, 4, 'stroke-dasharray="12 8"') + text(x + 14, 506, f'AI alone: {eng:.1f}%', 28, DK, 'start', 800)
     b += f'<rect x="60" y="482" width="28" height="28" rx="4" fill="{OR}"/>' + text(100, 506, 'base world', 28, DK, 'start', 700)
     b += f'<rect x="300" y="482" width="28" height="28" rx="4" fill="{BLUE}"/>' + text(340, 506, 'judgments inflated', 28, DK, 'start', 700)
     lo = min(fi['flag and sample|10']['error'][0], infl['panel, nudges, flags']['error'][0], infl['open forum, multipliers clipped']['error'][0]) * 100
@@ -444,7 +444,7 @@ def policy_vis():
 
 
 def related_vis():
-    boxes = [('Iterative Local Voting', 'Garg et al. 2017', 'random voters move a point locally; no stakeholders, agenda or engine'),
+    boxes = [('Iterative Local Voting', 'Garg et al. 2017', 'random voters move a point locally; no stakeholders, agenda or AI'),
              ('Budget aggregation, medians', 'Freeman et al. 2021 · El-Mhamdi et al. 2023', 'one-shot proposals and strategyproofness; here a stream of small answers'),
              ('Costly voluntary voting', 'Krishna &amp; Morgan 2015 · Müller &amp; Puppe 2020', 'turnout follows intensity: a reason to split attention from verdict'),
              ('Random juries, AI control', 'Kleros 2019 · Greenblatt et al. 2024', 'review where someone is suspicious; here flags only set the agenda')]
@@ -455,7 +455,7 @@ def related_vis():
 # ---------- notation ----------
 I = lambda v: '\\(' + v + '\\)'
 view, step, rate, gap, share, target, loss = (r'\mathrm{view}', r'\mathrm{step}', r'\mathrm{rate}',
-                                                     r'\mathrm{gap}', r'\mathrm{share}', r'\mathrm{target}', r'\mathrm{loss}')
+                                                     r'\mathrm{gap}', r'\mathrm{split}', r'\mathrm{target}', r'\mathrm{loss}')
 frac, bias, infl, lr = r'\mathrm{frac}_j', r'\mathrm{bias}', r'\mathrm{infl}', r'\mathrm{lr}'
 
 
@@ -500,76 +500,73 @@ S('''<section class="slide light">
   </div>
 </section>''')
 
-S(thm('Model', 'Continuous funding',
-      f"""<p>Projects {I(r'1, \dots, m')}; time {I(r't \ge 0')}.</p>
-<p>Funding flows at rate 1; at time {I('t')}, project {I('j')} gets the share {I(share + '_t(j)')} (shares sum to 1).</p>
-<p><b>Engine:</b> sets the split {I(share + '_t')} at every moment.</p>
-<p><b>Gap</b> of projects {I('a, b')}: {I(gap + r'_{ab} = \log \tfrac{' + share + '(a)}{' + share + '(b)}')}</p>""",
-      '<p>First, a benevolent engine: it follows the world, but errs persistently on some projects.</p>',
+S(thm('Model', 'The fund and the AI',
+      f"""<p>Projects {I(r'1, \dots, m')}. Funding flows continuously over time.</p>
+<p>The <b>split</b> {I(share + '_t')}: the fraction of the flow each project gets at time {I('t')}; the fractions sum to 1.</p>
+<p>An <b>AI</b> sets the split and may change it at any time.</p>""",
+      '<p>First, a well-meaning AI: right on most projects, but wrong on some for a long time.</p>',
       flow_vis(False, 760)))
 
-S(thm('Model', 'Members notice problems',
+S(thm('Model', 'Members',
       f"""<p>Members {I(r'1, \dots, n')}; <b>view</b> {I(view + '_i')}: the split {I('i')} considers right. Some maintain a project.</p>
-<p><b>Noticing:</b> member {I('i')} looks at project {I('j')} at random times, at rate {I(r'\mathrm{notice}_{ij}(t)')}; it may grow with how wrong {I('j')} is, and for how long.</p>
-<p><b>Flag:</b> on noticing, {I('i')} may mark {I('j')} as too low or too high.</p>""",
+<p><b>Noticing:</b> members look at projects now and then; a project that is more off, for longer, is more likely to be noticed.</p>
+<p><b>Flag:</b> a member who notices a project may mark it as too low or too high.</p>""",
       '<p>The chance that a problem is still unnoticed falls with its age.</p>',
       notice_vis(), 'Illustration: one problem, many members.'))
 
-S(thm('Model', 'Members answer questions',
-      f"""<p><b>Judged gap:</b> {I(r'd_{i,ab} = \log \tfrac{' + view + '_i(a)}{' + view + r'_i(b)} + \text{noise}')}</p>
-<p><b>Question</b> to {I('i')} on {I('a, b')}: shows their shares; the answer is {I(r'\operatorname{sign}(d_{i,ab} - ' + gap + '_{ab})')}</p>
-<p><b>Attention:</b> answered questions per unit of time.</p>""",
-      '<p>Flags are nearly free; answers cost attention.</p>',
+S(thm('Model', 'Questions',
+      f"""<p>A <b>question</b> shows a member two projects {I('a, b')} and their current amounts.</p>
+<p>The member answers by their view, with some noise: more to {I('a')}, about right, or more to {I('b')}.</p>
+<p><b>Attention:</b> answered questions per unit of time. Flags are nearly free.</p>""",
+      '<p>An answer gives a direction, never an amount.</p>',
       card_vis()))
 
-S(thm('Model', 'A constitution turns answers into moves',
-      f"""<p><b>Constitution:</b> questions on {I('a, b')} arrive at rate {I(rate + '_{ab}')} (may depend on flags); whom to ask; the update.</p>
-<p>{I('d_{ab}')}: the judged gap of the member asked about {I('a, b')}.</p>
-<p><b>Nudge:</b> answer {I('s')} multiplies {I(r'\tfrac{' + share + '(a)}{' + share + '(b)}')} by {I(r'e^{s \cdot ' + step + '}')}</p>
-<p><b>Multiplier</b> (the round’s): typed ratio {I('x')}; {I(gap + '_{ab}')} moves by {I(lr + r'\cdot(\log x - ' + gap + '_{ab})')}</p>""",
+S(thm('Model', 'The constitution',
+      f"""<p>It decides which questions to ask, whom to ask, and how an answer moves the split.</p>
+<p><b>Nudge:</b> “more to {I('a')}” multiplies {I(r'\tfrac{' + share + '(a)}{' + share + '(b)}')} by a fixed factor {I(r'e^{' + step + '}')}; “more to {I('b')}” divides by it.</p>
+<p><b>Multiplier</b> (the round’s format): the member types how many times more {I('a')} deserves; the ratio moves part of the way there.</p>""",
       '',
-      formats_vis(), f"A nudge uses an answer’s direction, a multiplier its size. {I(step + '=0.1')}, {I(lr + '=0.3')}."))
+      formats_vis(), 'Simulated answers on one pair. A nudge uses an answer’s direction, a multiplier its size.'))
 
 S(thm('Model', 'Objective',
-      f"""<p><b>Target</b> {I(target + '_t')}: for every pair {I('a, b')},</p>
-<p class="eq">{I(r'\log \tfrac{' + target + '_t(a)}{' + target + r'_t(b)} = \operatorname{median}_i\, d_{i,ab}')}</p>
+      f"""<p><b>Target</b> {I(target)}: the split that gives every pair the ratio the median member wants.</p>
 <p><b>Misallocated funding</b> up to time {I('T')}:</p>
-<p class="eq">{I(r'\int_0^T \tfrac12 \textstyle\sum_j |' + share + '_t(j) - ' + target + r'_t(j)|\, dt')}</p>
+<p class="eq">{I(r'\int_0^T \tfrac12 \textstyle\sum_j |' + share + '_t(j) - ' + target + r'(j)|\, dt')}</p>
 <p><b>Goal:</b> little misallocated funding for little attention.</p>""",
       '<p>A problem costs its size times how long it lasts.</p>',
       excess_vis(), 'One project; the shaded area is funding paid to the wrong place.'))
 
-S(thm('Observation', 'Nudges minimize a loss at the median',
-      f"""<p>In the small-step limit, nudges follow the gradient flow of</p>
-<p class="eq">{I(loss + '(' + share + r') = \tfrac{' + step + r'}{2} \sum_{a \lt b} ' + rate + r'_{ab}\, \mathbb{E}\,|d_{ab} - ' + gap + '_{ab}|')}</p>
-<p>The loss is convex; its minimizers are the resting points.</p>""",
-      f"<p>The derivative of {I(r'\mathbb{E}|d - ' + gap + '|')} in {I(gap)} is minus the expected answer.</p>",
-      loss_vis(), 'Judged gaps from a skewed distribution.'))
+S(thm('Observation', 'Nudges settle where answers balance',
+      f"""<p>A pair’s ratio stops moving when “more” and “less” are equally likely: at the ratio the median member wants.</p>
+<p>Formally, with small steps, nudges descend a convex loss: the expected distance, on a log scale, between wanted and current ratios, weighted by how often each pair is asked.</p>""",
+      '<p>Directions balance at the median, not at the mean.</p>',
+      loss_vis(), 'Wanted ratios from a skewed distribution.'))
 
 S(thm('Proposition 1', 'Bounded influence',
-      f"""<p>One answer changes any log-ratio of two shares by at most {I(step)}.</p>
-<p>If a member answers at most {I('k')} questions a day, then a factor of {I('e^{k \\cdot ' + step + '}')} bounds how much they change any ratio of two shares in a day.</p>""",
-      f"<p>Immediate from the update. A multiplier answer moves a log-ratio by {I(lr + r'\cdot(\log x - ' + gap + ')')}, unbounded as the cap on {I('x')} grows.</p>",
+      f"""<p>One answer changes the ratio of two projects’ shares by a factor of at most {I(r'e^{' + step + '}')}.</p>
+<p>If a member answers at most {I('k')} questions a day, then a factor of {I(r'e^{k \cdot ' + step + '}')} bounds how much they change any such ratio in a day.</p>""",
+      '<p>Immediate from the nudge. Multipliers have no such bound: a larger typed number moves the ratio more.</p>',
       bound_vis(), f"{I('k = 10')}, {I(step + ' = 0.1')}."))
 
 AG, g13a, g13b = agenda_vis()
 S(thm('Proposition 2', 'The agenda is not the verdict',
-      f"""<p>If {I(r'\operatorname{median}\, d_{ab} = \log \tfrac{' + target + '(a)}{' + target + '(b)}')} for every pair, then {I(target)} minimizes the loss for all rates.</p>
-<p>If also the asked pairs connect all projects and each {I('d_{ab}')} has positive density at its median, then it is the unique minimizer.</p>""",
-      f"<p>Each term is smallest at its median, and {I(target)} attains all of them.</p>",
-      AG, f"Simulation, inconsistent medians: 1 on (1,2) and (2,3), 0 on (1,3). The gap ends at {g13a} or {g13b}."))
+      f"""<p>Suppose some split gives every pair the ratio its median member wants. Then nudges rest at that split, however often each pair is asked.</p>
+<p>If the asked pairs connect all projects and every median is strict, then it is the only resting point.</p>""",
+      '<p>Each pair settles at its own median. If these medians clash, the question rates decide (right).</p>',
+      AG, 'Simulation with clashing medians: in logs, 1 for pairs (1,2) and (2,3) but 0 for (1,3).'))
 
 S(thm('Proposition 3', 'Maintainers set the overlooked projects',
-      f"""<p>If maintainers give a fraction {I(frac)} of the answers about {I('j')}, with judged gaps shifted up by {I(bias + ' > 0')}, then the resting gap of {I('j')} grows with {I(frac)}, toward {I(bias)} above consensus.</p>""",
-      f"<p>The resting gap is a median of a mixture. Recusal sets {I(frac + ' = 0')}; without it, {I(frac + r' \approx 1')} for projects nobody else looks at.</p>",
-      mixture_vis(), f"{I(bias + ' = 1')}; judged gaps normal, standard deviation 0.71."))
+      f"""<p>Suppose a fraction {I(frac)} of the answers about project {I('j')} come from its maintainers, who want {I('j')} higher by a factor {I(r'e^{' + bias + '}')}.</p>
+<p>Then {I('j')}’s resting share grows with {I(frac)}, up to that factor above the consensus.</p>""",
+      f"<p>Recusal sets {I(frac + ' = 0')}; without it, {I(frac + r' \approx 1')} for projects nobody else looks at.</p>",
+      mixture_vis(), f"{I(bias + ' = 1')}; wanted log-ratios normal, standard deviation 0.71."))
 
 EX, exm, exmean = exaggeration_vis()
 S(thm('Proposition 4', 'Exaggeration moves multipliers, not nudges',
-      f"""<p>If every member types multipliers whose logarithm is inflated by {I(infl + ' > 1')}, then the multiplier rule rests at {I(infl)} times the mean gaps.</p>
-<p>Nudges rest at the median gaps, whatever members would have typed.</p>""",
-      '<p>Multipliers rest where the expected residual vanishes; nudges where the expected answer vanishes, which depends only on the judged gaps.</p>',
-      EX, f"Nine judged gaps, one extreme; {I(infl + ' = 2.7')}, the simulation’s value."))
+      f"""<p>Suppose members type exaggerated multipliers: a wanted ratio {I('x')} is typed as {I(r'x^{' + infl + '}')}, with {I(infl + ' > 1')}.</p>
+<p>Then, on a log scale, multipliers rest at {I(infl)} times the mean wanted ratio. Nudges rest at the median, whatever members would type.</p>""",
+      '<p>Multipliers average what is typed; nudges only count directions.</p>',
+      EX, f"Nine wanted ratios, one extreme; {I(infl + ' = 2.7')}, the simulation’s value."))
 
 S(f'''<section class="slide light">
   <p class="eyebrow">Policy</p>
@@ -581,19 +578,19 @@ S(f'''<section class="slide light">
 
 FR, fs, eng = frontier_vis()
 at = {round(a): e for a, e in fs}
-S(thm('Simulation', 'Five answers a day halve the engine’s error',
-      f"<p>With flag and sample, {at[5]:.1f}% of the funding is misallocated at 5 answered questions a day and {at[10]:.1f}% at 10; with the engine alone, {eng:.1f}%.</p>",
-      '', FR, 'Simulation: 98 repos of the round; engine off by about 4.5× on 10% of them; 150 members, 50 maintainers; 12 runs of 180 days.', stack=True, pic_h=430))
+S(thm('Simulation', 'Five answers a day halve the AI’s error',
+      f"<p>With flag and sample, {at[5]:.1f}% of the funding is misallocated at 5 answered questions a day and {at[10]:.1f}% at 10; with the AI alone, {eng:.1f}%.</p>",
+      '', FR, 'Simulation: 98 repos of the round; AI off by about 4.5× on 10% of them; 150 members, 50 maintainers; 12 runs of 180 days.', stack=True, pic_h=430))
 
 DS, rows = designs_vis()
 r = lambda k: rows[k]['error'][0] * 100
 S(thm('Simulation', 'Ask uninvolved members for a direction',
       f"<p>At about 12 answers a day, random members with nudges leave {r('random members, nudges'):.1f}% misallocated ({r('random members, nudges, flags'):.1f}% with flags); an open forum, {r('open forum, nudges'):.1f}%, with {rows['open forum, nudges']['capture'][0]*100:.1f}% captured.</p>",
-      '', DS, 'Simulation, same world. Recusal removes capture; multipliers do not improve on the engine.', stack=True, pic_h=430))
+      '', DS, 'Simulation, same world. Recusal removes capture; multipliers do not improve on the AI.', stack=True, pic_h=430))
 
 IV, ilo, ihi, ieng = inflated_vis()
 S(thm('Simulation', 'If judgments are inflated, humans stop helping',
-      f"<p>If judgments themselves are inflated by 2.7, then every human channel leaves between {ilo:.1f}% and {ihi:.1f}% misallocated, against {ieng:.1f}% for the engine alone.</p>",
+      f"<p>If judgments themselves are inflated by 2.7, then every human channel leaves between {ilo:.1f}% and {ihi:.1f}% misallocated, against {ieng:.1f}% for the AI alone.</p>",
       '', IV, 'Simulation, same world; the inflation is in what members believe, not in how they type.', stack=True, pic_h=430))
 
 S(f'''<section class="slide light">
@@ -608,9 +605,9 @@ S('''<section class="slide dark">
   <h2>Interested attention as agenda, never as verdict</h2>
   <div class="rows ruled">
     <div class="row"><span class="n">1</span><p>Nudges rest at medians; the agenda only sets the speed</p></div>
-    <div class="row"><span class="n">2</span><p>The policy halves the engine’s error at 5 answers a day</p></div>
+    <div class="row"><span class="n">2</span><p>The policy halves the AI’s error at 5 answers a day</p></div>
     <div class="row"><span class="n">3</span><p>Open: inflated judgments, or only inflated typing?</p></div>
-    <div class="row"><span class="n">4</span><p>Next: an adversarial engine; steering the constitution</p></div>
+    <div class="row"><span class="n">4</span><p>Next: an adversarial AI; steering the constitution</p></div>
   </div>
 </section>''')
 
