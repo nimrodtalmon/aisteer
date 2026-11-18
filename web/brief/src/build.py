@@ -431,6 +431,34 @@ def inflated_vis():
     return svg(w, h, b), lo, hi, eng
 
 
+def sweep_vis():
+    d = res('inflation_sweep.json')
+    bs = sorted(d, key=float)
+    series = [('AI alone', DK, 4, 'stroke-dasharray="14 10"'), ('open forum, multipliers', GR, 3, 'stroke-dasharray="6 8"'),
+              ('open forum, nudges', GR, 4, ''), ('share-weighted, 12 a day', '#7F8388', 4, 'stroke-dasharray="10 8"'),
+              ('flag and sample, 12 a day', '#F2B26B', 5, ''), ('flag and sample, 5 a day', OR, 6, '')]
+    w, h, b = 1660, 500, ''
+    X0, X1, Y0, Y1, lo, hi = 120, 1200, 410, 30, 5, 26
+    X = lambda v: X0 + (float(v) - 1) / 1.7 * (X1 - X0)
+    Y = lambda e: Y0 - (e - lo) / (hi - lo) * (Y0 - Y1)
+    for e in (10, 15, 20, 25):
+        b += line(X0, Y(e), X1, Y(e), '#E3E2DD', 2) + text(X0 - 16, Y(e) + 9, f'{e}%', 26, GR, 'end')
+    b += line(X0, Y0, X1, Y0)
+    for v in bs:
+        b += text(X(v), Y0 + 36, f'{float(v):g}', 26, GR)
+    b += text(X0, Y0 + 70, 'typing only', 24, GR, 'start', 700) + text(X1, Y0 + 70, 'beliefs only', 24, GR, 'end', 700)
+    b += text((X0 + X1) / 2, Y0 + 70, 'belief exaggeration (of the 2.7 typed)', 24, GR, 'middle', 700)
+    for k, (name, col, wd, dash) in enumerate(series):
+        pts = [(X(v), Y(d[v][name]['error'][0] * 100)) for v in bs]
+        b += poly(pts, col, wd, dash)
+        b += ''.join(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{6 if wd < 5 else 8}" fill="{col}"/>' for x, y in pts)
+        order = ['share-weighted, 12 a day', 'open forum, nudges', 'flag and sample, 12 a day', 'open forum, multipliers', 'AI alone', 'flag and sample, 5 a day']
+        ly = 60 + order.index(name) * 58
+        b += f'<line x1="1270" y1="{ly}" x2="1330" y2="{ly}" stroke="{col}" stroke-width="{wd}" {dash}/>'
+        b += text(1345, ly + 9, name, 26, DK, 'start', 800 if 'flag' in name or name == 'AI alone' else 500)
+    return svg(w, h, b)
+
+
 def policy_vis():
     steps = [('Flag', 'anyone, any time; signed, standing; opposite flags cancel; own project counts ½'),
              ('Sample', '½ of questions by net flags, ½ by share, each with a random partner'),
@@ -571,7 +599,7 @@ def prop_table():
             ('Random pairs, share-weighted', Y, Y, Y, Y),
             ('Flag and sample (± escalation)', Y, Y, Y, Y)]
     h = ('<table class="mt pt"><tr><th>mechanism</th><th>bounded influence<br><small>Prop. 1</small></th>'
-         '<th>exaggeration-proof<br><small>Prop. 4</small></th><th>capture-proof<br><small>Prop. 3</small></th>'
+         '<th>typing-proof<br><small>Prop. 4</small></th><th>capture-proof<br><small>Prop. 3</small></th>'
          '<th>outlier-robust<br><small>Thm. 2</small></th></tr>')
     for r in rows:
         h += '<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>'
@@ -634,10 +662,11 @@ S(thm('Model', 'Members',
       notice_vis(), 'Illustration: one problem, many members.'))
 
 S(thm('Model', 'Questions',
-      f"""<p>A <b>question</b> shows a member two projects {I('a, b')} and their current amounts.</p>
-<p>The member answers by their view, with some noise: more to {I('a')}, about right, or more to {I('b')}.</p>
-<p><b>Attention:</b> answered questions per unit of time. Flags are nearly free.</p>""",
-      '<p>An answer gives a direction, never an amount.</p>',
+      f"""<p>A <b>question</b> shows two projects {I('a, b')} and their current amounts.</p>
+<p>The answer follows the member’s view, with noise: more to {I('a')}, about right, or more to {I('b')}.</p>
+<p><b>Exaggeration:</b> in the moment, members may want log-ratios inflated by {I(r'\mathrm{bel} \ge 1')}.</p>
+""",
+      '<p><b>Attention:</b> answered questions per unit of time. Flags are nearly free.</p>',
       card_vis()))
 
 S(thm('Model', 'The constitution',
@@ -648,7 +677,7 @@ S(thm('Model', 'The constitution',
       formats_vis(), 'Simulated answers on one pair. A nudge uses an answer’s direction, a multiplier its size.'))
 
 S(thm('Model', 'Objective',
-      f"""<p><b>Target</b> {I(target)}: the split that gives every pair the ratio the median member wants.</p>
+      f"""<p><b>Target</b> {I(target)}: every pair gets the ratio the median member wants on reflection.</p>
 <p><b>Misallocated funding</b> up to time {I('T')}:</p>
 <p class="eq">{I(r'\int_0^T \tfrac12 \textstyle\sum_j |' + share + '_t(j) - ' + target + r'(j)|\, dt')}</p>
 <p><b>Goal:</b> little misallocated funding for little attention.</p>""",
@@ -704,11 +733,11 @@ S(thm('Proposition 3', 'Open forums let maintainers capture',
       mixture_vis(), f"{I(bias + ' = 1')}; wanted log-ratios normal, standard deviation 0.71."))
 
 EX, exm, exmean = exaggeration_vis()
-S(thm('Proposition 4', 'Exaggeration moves multipliers, not nudges',
-      f"""<p>Suppose members type exaggerated multipliers: a wanted ratio {I('x')} is typed as {I(r'x^{' + infl + '}')}, with {I(infl + ' > 1')}.</p>
-<p>Then, on a log scale, multipliers rest at {I(infl)} times the mean wanted ratio. Nudges rest at the median, whatever members would type.</p>""",
-      '<p>Multipliers average what is typed; nudges only count directions.</p>',
-      EX, f"Nine wanted ratios, one extreme; {I(infl + ' = 2.7')}, the simulation’s value."))
+S(thm('Proposition 4', 'Typed exaggeration moves only multipliers',
+      f"""<p>Suppose members want log-ratios exaggerated by {I(r'\mathrm{bel}')} and type them exaggerated further: a wanted ratio {I('x')} is typed as {I(r'x^{' + infl + '}')}.</p>
+<p>Then, on a log scale, multipliers rest at {I(r'{\mathrm{bel} \times ' + infl + '}')} times the mean; nudges at {I(r'\mathrm{bel}')} times the median.</p>""",
+      '<p>Nudges only count directions, so only belief exaggeration reaches them.</p>',
+      EX, f"Nine wanted ratios; {I(r'\mathrm{bel} = 1')}, {I(infl + ' = 2.7')}"))
 
 S(f'''<section class="slide light">
   <p class="eyebrow">Properties</p>
@@ -751,10 +780,11 @@ S(thm('Simulation', 'At equal attention, robust mechanisms win',
       f"<p>At about 12 answers a day: flag and sample {r('flag and sample'):.1f}%, share-weighted {r('share-weighted'):.1f}%; an open forum with nudges {r('open forum, nudges'):.1f}%, with {rows['open forum, nudges']['capture'][0]*100:.1f}% captured by maintainers.</p>",
       '', DS, 'Simulation, same world, each mechanism with its best step. Multipliers do not improve on the AI.', stack=True, pic_h=430))
 
-IV, ilo, ihi, ieng = inflated_vis()
-S(thm('Simulation', 'If judgments are inflated, humans stop helping',
-      f"<p>If what members believe is itself inflated by 2.7, then every mechanism leaves between {ilo:.1f}% and {ihi:.1f}% misallocated, against {ieng:.1f}% for the AI alone.</p>",
-      '', IV, 'Simulation, same world; the inflation is in what members believe, not in how they type.', stack=True, pic_h=430))
+SW = res('inflation_sweep.json')
+sw = lambda b, k: SW[b][k]['error'][0] * 100
+S(thm('Simulation', 'Humans help unless beliefs exaggerate a lot',
+      f"<p>Typed numbers are inflated by 2.7. If beliefs carry at most 2 of it, then flag and sample still beats the AI ({sw('2.0', 'flag and sample, 5 a day'):.1f}% against {sw('2.0', 'AI alone'):.1f}%); if all of it, nothing does.</p>",
+      '', sweep_vis(), 'Simulation, same world, best steps. With strong belief exaggeration, more attention hurts.', stack=True, pic_h=440))
 
 S(f'''<section class="slide light">
   <p class="eyebrow">Related work</p>
@@ -770,7 +800,7 @@ S('''<section class="slide dark">
     <div class="row"><span class="n">1</span><p>Nudges rest at medians: robust, at little cost in accuracy</p></div>
     <div class="row"><span class="n">2</span><p>Quadrupling attention halves the mean-square error</p></div>
     <div class="row"><span class="n">3</span><p>Flag and sample is on the frontier at every budget</p></div>
-    <div class="row"><span class="n">4</span><p>Open: inflated beliefs, or only inflated typing?</p></div>
+    <div class="row"><span class="n">4</span><p>Humans help unless beliefs exaggerate by more than about 2</p></div>
     <div class="row"><span class="n">5</span><p>Next: an adversarial AI; steering the constitution</p></div>
   </div>
 </section>''')
