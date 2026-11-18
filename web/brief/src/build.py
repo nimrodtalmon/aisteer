@@ -389,7 +389,7 @@ def designs_vis():
     rows = [('AI alone', eng, DK),
             ('open forum, multipliers', d['open forum, multipliers'], GR),
             ('open forum, nudges', d['open forum, nudges'], GR),
-            ('random members, multipliers', d['panel, multipliers'], GR),
+            ('share-weighted, multipliers', d['panel, multipliers'], GR),
             ('share-weighted', d['panel, nudges'], OR),
             ('flag and sample', d['panel, nudges, flags'], OR)]
     w, h, b = 1660, 520, ''
@@ -550,17 +550,16 @@ def tradeoff_vis():
 
 
 def mech_table():
-    rows = [('AI alone', '—', '—', '—'),
-            ('Open forum, multipliers', 'any pair', 'volunteers', 'multiplier'),
-            ('Open forum, nudges', 'any pair', 'volunteers', 'nudge'),
-            ('Random members, multipliers', 'pairs by share', 'random, recused', 'multiplier'),
-            ('Random pairs', 'uniform pairs', 'random, recused', 'nudge'),
-            ('Share-weighted', 'pairs by share', 'random, recused', 'nudge'),
-            ('Flag and sample', '½ by flags, ½ by share', 'random, recused', 'nudge'),
-            ('Flag, sample, escalate', 'as above; flagged often: a panel', 'random, recused', 'nudge')]
-    h = '<table class="mt"><tr><th>mechanism</th><th>which questions</th><th>who answers</th><th>answer</th></tr>'
-    for r in rows:
-        h += '<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>'
+    rows = [('chosen by volunteers', 'volunteers', 'Open forum, nudges', 'Open forum, multipliers'),
+            ('uniform', 'random non-maintainers', 'Random pairs', '·'),
+            ('by share', 'random non-maintainers', 'Share-weighted', 'Share-weighted, multipliers'),
+            ('½ by flags, ½ by share', 'random non-maintainers', 'Flag and sample', '·'),
+            ('as above, plus escalation', 'random non-maintainers', 'Flag, sample, escalate', '·')]
+    h = ('<table class="mt grid"><colgroup><col style="width:30%"><col style="width:24%"><col style="width:23%"><col style="width:23%"></colgroup>'
+         '<tr><th>which pairs are asked</th><th>who answers</th>'
+         '<th class="c">nudge</th><th class="c">multiplier</th></tr>')
+    for a, w, n, m in rows:
+        h += f'<tr><td>{a}</td><td>{w}</td><td class="c cell">{n}</td><td class="c cell{" empty" if m == "·" else ""}">{m}</td></tr>'
     return h + '</table>'
 
 
@@ -568,7 +567,7 @@ def prop_table():
     Y, N = '<span class="yes">✓</span>', '<span class="no">✗</span>'
     rows = [('Open forum, multipliers', N, N, N, N),
             ('Open forum, nudges', Y, Y, N, Y),
-            ('Random members, multipliers', N, N, Y, N),
+            ('Share-weighted, multipliers', N, N, Y, N),
             ('Random pairs, share-weighted', Y, Y, Y, Y),
             ('Flag and sample (± escalation)', Y, Y, Y, Y)]
     h = ('<table class="mt pt"><tr><th>mechanism</th><th>bounded influence<br><small>Prop. 1</small></th>'
@@ -666,8 +665,8 @@ S(thm('Desired properties', 'Accuracy for attention, and robustness',
 
 S(f'''<section class="slide light">
   <p class="eyebrow">Mechanisms</p>
-  <h2>What a mechanism decides</h2>
-  <p class="sub">Each mechanism also fixes the attention budget and the step (or learning rate).</p>
+  <h2>Mechanisms: combinations of three choices</h2>
+  <p class="sub">Which pairs × who answers × what an answer does; plus the AI alone.</p>
   {mech_table()}
 </section>''')
 
@@ -806,6 +805,11 @@ STYLE = '''<style>
 .mt th { text-align: left; color: var(--gray); font-weight: 700; font-size: 28px; padding: 10px 18px; border-bottom: 3px solid var(--gray-light); }
 .mt td { padding: 9px 18px; border-bottom: 2px solid #E3E2DD; }
 .mt td:first-child { font-weight: 700; }
+.grid { table-layout: fixed; font-size: 28px; }
+.grid td.c, .grid th.c { text-align: center; }
+.grid td.cell { font-weight: 700; color: var(--dark); font-size: 28px; }
+.grid td.empty { color: var(--gray-light); font-weight: 400; }
+.grid td:first-child { font-weight: 400; }
 .pt td, .pt th { text-align: center; } .pt td:first-child, .pt th:first-child { text-align: left; }
 .pt small { font-weight: 400; font-size: 24px; }
 .yes { color: #2E8B57; font-weight: 800; font-size: 40px; } .no { color: #C0392B; font-weight: 800; font-size: 40px; }
