@@ -18,6 +18,8 @@ instantiated on Ethereum's Deep Funding (GG24 round, 98 repositories).
 - `results/*.json` outputs used in the report.
 - `paper/` a LaTeX skeleton of the paper (main.tex, refs.bib with verified entries only, figures).
 - `figures/` paper figures (`experiments/figures.py`).
+- `web/brief/` the research brief: slides built by `web/brief/src/build.py` from `results/`
+  (deck engine in `web/assets/`, from the zutot repo); served by the app at `/brief/`.
 - `app/` the web app (Python standard library). Deployed at
   https://talmonlab.bgu.ac.il/steer/ from nimrodtalmon/talmonlab, folder server/steer
   (this folder is the source copy). The paper lives on Overleaf.
