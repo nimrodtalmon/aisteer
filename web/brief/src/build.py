@@ -352,7 +352,6 @@ def frontier_vis():
         return pts
     fs, rp, mw = series('flag and sample'), series('panel, random pairs'), series('panel, money-weighted')
     eng = d['engine only|0']['error'][0] * 100
-    esc = d['flag, sample, escalate|2']; esc = (esc['attention'][0], esc['error'][0] * 100)
     on, om = d['open, nudges|0'], d['open, multipliers|0']
     w, h, b = 1660, 520, ''
     X0, X1, Y0, Y1, ymax = 120, 1620, 436, 30, 22
@@ -373,9 +372,6 @@ def frontier_vis():
     b += ''.join(f'<circle cx="{X(a):.0f}" cy="{Y(e):.0f}" r="11" fill="{OR}"/>' for a, e in fs)
     b += text(X(fs[3][0]) + 10, Y(fs[3][1]) + 46, 'flag and sample', 30, OR, 'start', 800)
     b += text(X(rp[2][0]) + 20, Y(rp[2][1]) - 16, 'random pairs', 28, GR, 'start', 700)
-    x, y = X(esc[0]), Y(esc[1])
-    b += f'<rect x="{x-12:.0f}" y="{y-12:.0f}" width="24" height="24" fill="{BLUE}" transform="rotate(45 {x:.0f} {y:.0f})"/>'
-    b += text(x + 10, y + 56, f'+ escalation: {esc[1]:.1f}%', 28, BLUE, 'start', 800)
     for v, lab in ((on, 'open forum, nudges'), (om, 'open forum, multipliers')):
         x, y = X(v['attention'][0]), Y(v['error'][0] * 100)
         b += f'<circle cx="{x:.0f}" cy="{y:.0f}" r="12" fill="{LT}" stroke="{DK}" stroke-width="4"/>'
@@ -582,7 +578,7 @@ def mech_table():
             ('uniform', 'random non-maintainers', 'Random pairs', '·'),
             ('by share', 'random non-maintainers', 'Share-weighted', 'Share-weighted, multipliers'),
             ('½ by flags, ½ by share', 'random non-maintainers', 'Flag and sample', '·'),
-            ('as above, plus escalation', 'random non-maintainers', 'Flag, sample, escalate', '·')]
+            ]
     h = ('<table class="mt grid"><colgroup><col style="width:30%"><col style="width:24%"><col style="width:23%"><col style="width:23%"></colgroup>'
          '<tr><th>which pairs are asked</th><th>who answers</th>'
          '<th class="c">nudge</th><th class="c">multiplier</th></tr>')
@@ -597,10 +593,10 @@ def prop_table():
             ('Open forum, nudges', Y, Y, N, Y),
             ('Share-weighted, multipliers', N, N, Y, N),
             ('Random pairs, share-weighted', Y, Y, Y, Y),
-            ('Flag and sample (± escalation)', Y, Y, Y, Y)]
-    h = ('<table class="mt pt"><tr><th>mechanism</th><th>bounded influence<br><small>Prop. 1</small></th>'
-         '<th>typing-proof<br><small>Prop. 4</small></th><th>capture-proof<br><small>Prop. 3</small></th>'
-         '<th>outlier-robust<br><small>Thm. 2</small></th></tr>')
+            ('Flag and sample', Y, Y, Y, Y)]
+    h = ('<table class="mt pt"><tr><th>mechanism</th><th>bounded influence<br><small>Thm. 1</small></th>'
+         '<th>typing-proof<br><small>Thm. 1</small></th><th>capture-proof<br><small>Thm. 2</small></th>'
+         '<th>outlier-robust<br><small>Thm. 3</small></th></tr>')
     for r in rows:
         h += '<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>'
     return h + '</table>'
@@ -621,7 +617,7 @@ def thm(label, title, box, why, vis, caption='', stack=False, pic_h=None):
 TITLE = f'''<section class="slide dark center">
   <p class="eyebrow">aisteer</p>
   <h1>Steering a Living Allocator<br>with Scarce Attention</h1>
-  <p class="big">An AI splits a fund; a community keeps it on course</p>
+  <p class="big">Which mechanism should a community use<br>to keep an AI-run fund on course?</p>
   <p class="muted">Nimrod Talmon · Ben-Gurion University · draft, {DATE}</p>
 </section>'''
 
@@ -647,142 +643,92 @@ S('''<section class="slide light">
   </div>
 </section>''')
 
-S(thm('Model', 'The fund and the AI',
-      f"""<p>Projects {I(r'1, \dots, m')}. Funding flows continuously over time.</p>
-<p>The <b>split</b> {I(share + '_t')}: the fraction of the flow each project gets at time {I('t')}; the fractions sum to 1.</p>
-<p>An <b>AI</b> sets the split and may change it at any time.</p>""",
-      '<p>First, a well-meaning AI: right on most projects, but wrong on some for a long time.</p>',
-      flow_vis(False, 760)))
+S('''<section class="slide dark">
+  <p class="eyebrow">The question</p>
+  <h2>Which mechanism should a community use?</h2>
+  <div class="rows ruled">
+    <div class="row"><span class="n">1</span><p>A model: a fund, an AI that splits it, members who look now and then</p></div>
+    <div class="row"><span class="n">2</span><p>What we want: accuracy, little attention, robustness</p></div>
+    <div class="row"><span class="n">3</span><p>Natural candidates, compared by proofs and simulation</p></div>
+    <div class="row"><span class="n">4</span><p>Advice</p></div>
+  </div>
+</section>''')
 
-S(thm('Model', 'Members',
-      f"""<p>Members {I(r'1, \dots, n')}; <b>view</b> {I(view + '_i')}: the split {I('i')} considers right. Some maintain a project.</p>
-<p><b>Noticing:</b> members look at projects now and then; a project that is more off, for longer, is more likely to be noticed.</p>
-<p><b>Flag:</b> a member who notices a project may mark it as too low or too high.</p>""",
-      '<p>The chance that a problem is still unnoticed falls with its age.</p>',
-      notice_vis(), 'Illustration: one problem, many members.'))
+S(thm('Model', 'The fund, the AI, the members',
+      f"""<p>Projects {I(r'1, \dots, m')}; funding flows continuously. The <b>split</b> {I(share + '_t')} gives each project’s fraction at time {I('t')}.</p>
+<p>An <b>AI</b> sets the split: right on most projects, wrong on some for a long time.</p>
+<p>Members {I(r'1, \dots, n')}; <b>view</b> {I(view + '_i')}: the split {I('i')} wants on reflection. Some maintain a project.</p>
+<p>Members notice problems now and then and may <b>flag</b> a project as too low or too high.</p>""",
+      '',
+      flow_vis(False, 760), 'The AI’s split over time; one project is over-funded.'))
 
-S(thm('Model', 'Questions',
-      f"""<p>A <b>question</b> shows two projects {I('a, b')} and their current amounts.</p>
+S(thm('Model', 'Questions and answers',
+      f"""<p>A <b>question</b> shows a member two projects {I('a, b')} and their current amounts.</p>
 <p>The answer follows the member’s view, with noise: more to {I('a')}, about right, or more to {I('b')}.</p>
-<p><b>Exaggeration:</b> in the moment, members may want log-ratios inflated by {I(r'\mathrm{bel} \ge 1')}.</p>
-""",
-      '<p><b>Attention:</b> answered questions per unit of time. Flags are nearly free.</p>',
+<p><b>Exaggeration:</b> in the moment, members may want log-ratios inflated by {I(r'\mathrm{bel} \ge 1')}; typing a number may inflate them further, by {I(infl)}.</p>""",
+      '<p><b>Attention:</b> answered questions per day. Flags are nearly free.</p>',
       card_vis()))
 
-S(thm('Model', 'The constitution',
-      f"""<p>It decides which questions to ask, whom to ask, and how an answer moves the split.</p>
-<p><b>Nudge:</b> “more to {I('a')}” multiplies {I(r'\tfrac{' + share + '(a)}{' + share + '(b)}')} by a fixed factor {I(r'e^{' + step + '}')}; “more to {I('b')}” divides by it.</p>
+S(thm('Model', 'What an answer does',
+      f"""<p><b>Nudge:</b> “more to {I('a')}” multiplies {I(r'\tfrac{' + share + '(a)}{' + share + '(b)}')} by a fixed factor {I(r'e^{' + step + '}')}; “more to {I('b')}” divides by it.</p>
 <p><b>Multiplier</b> (the round’s format): the member types how many times more {I('a')} deserves; the ratio moves part of the way there.</p>""",
-      '',
-      formats_vis(), 'Simulated answers on one pair. A nudge uses an answer’s direction, a multiplier its size.'))
+      '<p>A nudge uses only an answer’s direction; a multiplier uses its size.</p>',
+      formats_vis(), 'Simulated answers on one pair.'))
 
-S(thm('Model', 'Objective',
+S(thm('What we want', 'Accuracy, little attention, robustness',
       f"""<p><b>Target</b> {I(target)}: every pair gets the ratio the median member wants on reflection.</p>
-<p><b>Misallocated funding</b> up to time {I('T')}:</p>
+<p><b>Accuracy:</b> little misallocated funding,</p>
 <p class="eq">{I(r'\int_0^T \tfrac12 \textstyle\sum_j |' + share + '_t(j) - ' + target + r'(j)|\, dt')}</p>
-<p><b>Goal:</b> little misallocated funding for little attention.</p>""",
-      '<p>A problem costs its size times how long it lasts.</p>',
-      excess_vis(), 'One project; the shaded area is funding paid to the wrong place.'))
-
-S(thm('Desired properties', 'Accuracy for attention, and robustness',
-      f"""<p><b>Accuracy:</b> little misallocated funding.</p>
-<p><b>Economy:</b> few answers per day.</p>
-<p>They conflict; the <b>frontier</b>: best accuracy per attention budget.</p>
-<p><b>Robustness:</b> bounded influence per answer; bigger typed numbers change nothing; no capture by maintainers.</p>""",
-      '<p>We look for mechanisms on the frontier that are also robust.</p>',
-      tradeoff_vis(), 'Illustration.'))
+<p><b>Little attention:</b> few answers per day.</p>
+<p><b>Robustness:</b> bounded influence per answer; typing-proof; capture-proof.</p>""",
+      '',
+      tradeoff_vis(), 'Accuracy and attention conflict: we want mechanisms on the frontier.'))
 
 S(f'''<section class="slide light">
-  <p class="eyebrow">Mechanisms</p>
-  <h2>Mechanisms: combinations of three choices</h2>
+  <p class="eyebrow">Candidates</p>
+  <h2>Natural mechanisms: three choices combined</h2>
   <p class="sub">Which pairs × who answers × what an answer does; plus the AI alone.</p>
   {mech_table()}
 </section>''')
 
-S(f'''<section class="slide light">
-  <p class="eyebrow">Mechanisms</p>
-  <h2>Flag, sample, nudge, escalate</h2>
-  <p class="sub">Interested people may point at problems; uninvolved people decide how much to move.</p>
-  {policy_vis()}
-  <p class="why">Its rules are parameters of the constitution: the step, the mix of flags and shares, the daily cap, the escalation threshold.</p>
-</section>''')
-
-S(thm('Observation', 'Nudges settle where answers balance',
-      f"""<p>A pair’s ratio stops moving when “more” and “less” are equally likely: at the ratio the median member wants.</p>
-<p>Formally, with small steps, nudges descend a convex loss: the expected distance, on a log scale, between wanted and current ratios, weighted by how often each pair is asked.</p>""",
-      '<p>Directions balance at the median, not at the mean.</p>',
-      loss_vis(), 'Wanted ratios from a skewed distribution.'))
-
-S(thm('Proposition 1', 'Bounded influence',
-      f"""<p>One answer changes the ratio of two projects’ shares by a factor of at most {I(r'e^{' + step + '}')}.</p>
-<p>If a member answers at most {I('k')} questions a day, then a factor of {I(r'e^{k \cdot ' + step + '}')} bounds how much they change any such ratio in a day.</p>""",
-      '<p>Immediate from the nudge. Multipliers have no such bound: a larger typed number moves the ratio more.</p>',
-      bound_vis(), f"{I('k = 10')}, {I(step + ' = 0.1')}."))
-
-AG, g13a, g13b = agenda_vis()
-S(thm('Proposition 2', 'The agenda is not the verdict',
-      f"""<p>Suppose some split gives every pair the ratio its median member wants. Then nudges rest at that split, however often each pair is asked.</p>
-<p>If the asked pairs connect all projects and every median is strict, then it is the only resting point.</p>""",
-      '<p>Each pair settles at its own median. If these medians clash, the question rates decide (right).</p>',
-      AG, 'Simulation with clashing medians: in logs, 1 for pairs (1,2) and (2,3) but 0 for (1,3).'))
-
-S(thm('Proposition 3', 'Open forums let maintainers capture',
-      f"""<p>Suppose a fraction {I(frac)} of the answers about project {I('j')} come from its maintainers, who want {I('j')} higher by a factor {I(r'e^{' + bias + '}')}.</p>
-<p>Then {I('j')}’s resting share grows with {I(frac)}, up to that factor above the consensus.</p>""",
-      f"<p>Recusal sets {I(frac + ' = 0')}; without it, {I(frac + r' \approx 1')} for projects nobody else looks at.</p>",
-      mixture_vis(), f"{I(bias + ' = 1')}; wanted log-ratios normal, standard deviation 0.71."))
-
 EX, exm, exmean = exaggeration_vis()
-S(thm('Proposition 4', 'Typed exaggeration moves only multipliers',
-      f"""<p>Suppose members want log-ratios exaggerated by {I(r'\mathrm{bel}')} and type them exaggerated further: a wanted ratio {I('x')} is typed as {I(r'x^{' + infl + '}')}.</p>
-<p>Then, on a log scale, multipliers rest at {I(r'{\mathrm{bel} \times ' + infl + '}')} times the mean; nudges at {I(r'\mathrm{bel}')} times the median.</p>""",
-      '<p>Nudges only count directions, so only belief exaggeration reaches them.</p>',
+S(thm('Theorem 1', 'Nudges are bounded, typing-proof, agenda-free',
+      f"""<p>Under nudges, with small steps:</p>
+<p>(a) one answer moves a ratio by a factor of at most {I(r'e^{' + step + '}')};</p>
+<p>(b) each pair rests at its median wanted ratio, inflated by {I(r'\mathrm{bel}')}, not by {I(infl)};</p>
+<p>(c) if one split fits all medians, then it is the rest point, whatever is asked.</p>""",
+      f"<p>Multipliers fail (a) and (b): they rest at {I(r'{\mathrm{bel} \times ' + infl + '}')} times the mean.</p>",
       EX, f"Nine wanted ratios; {I(r'\mathrm{bel} = 1')}, {I(infl + ' = 2.7')}"))
 
+S(thm('Theorem 2', 'Open forums are captured; recusal fixes it',
+      f"""<p>Suppose a fraction {I(frac)} of the answers about project {I('j')} come from its maintainers, who want {I('j')} higher by a factor {I(r'e^{' + bias + '}')}.</p>
+<p>Then {I('j')}’s resting share grows with {I(frac)}, up to that factor above the consensus.</p>""",
+      f"<p>Recusal sets {I(frac + ' = 0')}; in an open forum, {I(frac + r' \approx 1')} for projects nobody else looks at.</p>",
+      mixture_vis(), f"{I(bias + ' = 1')}; wanted log-ratios normal, standard deviation 0.71."))
+
+S(thm('Theorem 3', 'Accuracy for attention',
+      f"""<p>One pair, questions at rate {I('q')}; the median drifts with volatility {I(r'\mathrm{vol}')}; answer noise has density {I(r'\mathrm{dens}')} at zero. Nudges’ mean-square error is about</p>
+<p class="eq">{I(r'\displaystyle\frac{q \cdot ' + step + r'^2 + \mathrm{vol}^2}{4 \cdot q \cdot ' + step + r' \cdot \mathrm{dens}}')}</p>
+<p>Best step: {I(r'\mathrm{vol}/\sqrt{q}')}, smaller with more attention.</p>""",
+      f"<p>Multipliers do at most {I(r'\sqrt{\pi/2} \approx 1.25')} times better, only for honest, normal answers.</p>",
+      theory_track_vis(), 'Dots: simulation; curves: formula; 1 to 64 answers a day.'))
+
 S(f'''<section class="slide light">
-  <p class="eyebrow">Properties</p>
-  <h2>Which mechanisms are robust</h2>
-  <p class="sub">Random, recused members answering with nudges have all four properties.</p>
+  <p class="eyebrow">Comparison</p>
+  <h2>Robustness at a glance</h2>
+  <p class="sub">Random non-maintainers answering with nudges have all four properties.</p>
   {prop_table()}
 </section>''')
 
-S(thm('Theorem 1', 'The trade-off for nudges',
-      f"""<p>One pair, questions at rate {I('q')}. The median wanted log-ratio drifts with volatility {I(r'\mathrm{vol}')}; answer noise has density {I(r'\mathrm{dens}')} at zero.</p>
-<p>With small steps, the mean-square error of nudges is about</p>
-<p class="eq">{I(r'\displaystyle\frac{q \cdot ' + step + r'^2 + \mathrm{vol}^2}{4 \cdot q \cdot ' + step + r' \cdot \mathrm{dens}}')}</p>
-<p>The best step is {I(r'\mathrm{vol}/\sqrt{q}')}.</p>""",
-      '',
-      theory_track_vis(), "Dots: simulation; curves: formula; light to orange: 1, 4, 16, 64 answers a day."))
-
-S(thm('Theorem 2', 'Nudges lose little, and are robust',
-      f"""<p>Same setting, multipliers with learning rate {I(lr)}, answer variance {I(r'\mathrm{noise}^2')}: the best error is about {I(r'\mathrm{vol} \cdot \mathrm{noise}/\sqrt{q}')}</p>
-<p>For normal noise, the best error of nudges is only {I(r'\sqrt{\pi/2} \approx 1.25')} times larger.</p>
-<p>With answers at the cap, or inflated typing, multipliers break; nudges barely change.</p>""",
-      '<p>Mean versus median: a little efficiency for a lot of robustness.</p>',
-      robust_vis(), 'Simulation, 16 answers a day; each rule with its best step for honest answers.'))
-
-S(thm('Proposition 5', 'The cost of a blind spot',
-      f"""<p>A project with share {I('s')} is over-funded by a factor {I(r'e^{\mathrm{err}}')}, with {I(r'\mathrm{err}')} large next to the noise.</p>
-<p>If it is noticed after expected time {I(r'1/\mathrm{notice}')} and then asked about at rate {I('q')}, then the funding to the wrong place is about</p>
-<p class="eq">{I(r'\displaystyle s \cdot \Big(\frac{e^{\mathrm{err}} - 1}{\mathrm{notice}} + \frac{e^{\mathrm{err}} - 1 - \mathrm{err}}{q \cdot ' + step + r'}\Big)')}</p>""",
-      f"<p>Once noticed, every answer points the same way: the log error falls at speed {I('q \\cdot ' + step)}.</p>",
-      blind_vis(), f"{I(r'\mathrm{err} = 1.5')} (4.5×); noise sd 0.3; notice rates 0.1 to 1 a day."))
-
 FR, fs, eng = frontier_vis()
 at = {round(a): e for a, e in fs}
-S(thm('Simulation', 'Flag and sample is on the frontier',
-      f"<p>At every attention budget, flag and sample (with escalation at the lowest) misallocates the least: {at[5]:.1f}% at 5 answers a day, {at[10]:.1f}% at 10; the AI alone, {eng:.1f}%.</p>",
-      '', FR, 'The 98 repos of the round; AI off by about 4.5× on 10% of them; 150 members, 50 maintainers; 12 runs of 180 days. Dashed: share-weighted. Same picture in a skewed world and with fewer blind spots.', stack=True, pic_h=430))
-
-DS, rows = designs_vis()
-r = lambda k: rows[k]['error'][0] * 100
-S(thm('Simulation', 'At equal attention, robust mechanisms win',
-      f"<p>At about 12 answers a day: flag and sample {r('flag and sample'):.1f}%, share-weighted {r('share-weighted'):.1f}%; an open forum with nudges {r('open forum, nudges'):.1f}%, with {rows['open forum, nudges']['capture'][0]*100:.1f}% captured by maintainers.</p>",
-      '', DS, 'Simulation, same world, each mechanism with its best step. Multipliers do not improve on the AI.', stack=True, pic_h=430))
+S(thm('Comparison', 'Flag and sample is the most accurate',
+      f"<p>At every attention budget, flag and sample misallocates the least, slightly ahead of share-weighted: {at[5]:.1f}% at 5 answers a day, {at[10]:.1f}% at 10; the AI alone, {eng:.1f}%.</p>",
+      '', FR, 'Simulation: the 98 repos of the round; AI off by about 4.5× on 10% of them; 150 members, 50 maintainers; 12 runs of 180 days. Dashed: share-weighted.', stack=True, pic_h=430))
 
 SW = res('inflation_sweep.json')
 sw = lambda b, k: SW[b][k]['error'][0] * 100
-S(thm('Simulation', 'Humans help unless beliefs exaggerate a lot',
+S(thm('Comparison', 'Humans help unless beliefs exaggerate a lot',
       f"<p>Typed numbers are inflated by 2.7. If beliefs carry at most 2 of it, then flag and sample still beats the AI ({sw('2.0', 'flag and sample, 5 a day'):.1f}% against {sw('2.0', 'AI alone'):.1f}%); if all of it, nothing does.</p>",
       '', sweep_vis(), 'Simulation, same world, best steps. With strong belief exaggeration, more attention hurts.', stack=True, pic_h=440))
 
@@ -794,14 +740,14 @@ S(f'''<section class="slide light">
 </section>''')
 
 S('''<section class="slide dark">
-  <p class="eyebrow">Summary</p>
-  <h2>Interested attention as agenda, never as verdict</h2>
+  <p class="eyebrow">Conclusion</p>
+  <h2>Our advice</h2>
   <div class="rows ruled">
-    <div class="row"><span class="n">1</span><p>Nudges rest at medians: robust, at little cost in accuracy</p></div>
-    <div class="row"><span class="n">2</span><p>Quadrupling attention halves the mean-square error</p></div>
-    <div class="row"><span class="n">3</span><p>Flag and sample is on the frontier at every budget</p></div>
-    <div class="row"><span class="n">4</span><p>Humans help unless beliefs exaggerate by more than about 2</p></div>
-    <div class="row"><span class="n">5</span><p>Next: an adversarial AI; steering the constitution</p></div>
+    <div class="row"><span class="n">1</span><p>Flags pick the questions; random non-maintainers answer</p></div>
+    <div class="row"><span class="n">2</span><p>Answers give a direction; each moves a ratio by 5–10%</p></div>
+    <div class="row"><span class="n">3</span><p>About 5 answers a day halve the AI’s error</p></div>
+    <div class="row"><span class="n">4</span><p>Avoid open forums and typed multipliers</p></div>
+    <div class="row"><span class="n">5</span><p>Caveat: first check that beliefs are not too exaggerated</p></div>
   </div>
 </section>''')
 
