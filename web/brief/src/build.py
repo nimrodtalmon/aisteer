@@ -455,6 +455,32 @@ def sweep_vis():
     return svg(w, h, b)
 
 
+def detect_vis(m=98):
+    """Expected time until a new problem is first asked about: uniform pairs vs reports."""
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1 = 100, 740, 420, 40
+    lx0, lx1, ly0, ly1 = math.log(1), math.log(80), math.log(0.4), math.log(60)
+    X = lambda a: X0 + (math.log(a) - lx0) / (lx1 - lx0) * (X1 - X0)
+    Y = lambda t: Y0 - (math.log(t) - ly0) / (ly1 - ly0) * (Y0 - Y1)
+    b += line(X0, Y0, X1, Y0) + line(X0, Y0, X0, Y1)
+    for t in (1, 3, 10, 30):
+        b += line(X0, Y(t), X1, Y(t), '#E3E2DD', 2) + text(X0 - 12, Y(t) + 9, str(t), 24, GR, 'end')
+    for a in (1, 3, 10, 30, 80):
+        b += text(X(a), Y0 + 32, str(a), 24, GR)
+    As = [math.exp(lx0 + k * (lx1 - lx0) / 60) for k in range(61)]
+    b += poly([(X(a), Y(m / (2 * a))) for a in As], GR, 5)
+    b += text(X(2.2), Y(m / 4.4) + 44, 'uniform pairs', 26, GR, 'start', 800)
+    for notice, lab in ((0.2, 'reports, noticed in 5 days'), (1.0, 'reports, noticed in 1 day')):
+        t = 1 / notice
+        b += line(X0, Y(t), X1, Y(t), OR, 5)
+        b += text(X0 + 10, Y(t) - 12, lab, 24, OR, 'start', 800)
+        ax = m * notice / 2
+        b += f'<circle cx="{X(ax):.0f}" cy="{Y(t):.0f}" r="9" fill="{DK}"/>'
+    b += text((X0 + X1) / 2, 482, 'attention (answers per day, log scale)', 26, GR)
+    b += text(X0, 26, 'days until first asked (log scale)', 26, GR, 'start', 700)
+    return svg(w, h, b)
+
+
 def policy_vis():
     steps = [('Flag', 'anyone, any time; signed, standing; opposite flags cancel; own project counts ½'),
              ('Sample', '½ of questions by net flags, ½ by share, each with a random partner'),
@@ -655,10 +681,10 @@ S('''<section class="slide dark">
 </section>''')
 
 S(thm('Model', 'The fund, the AI, the members',
-      f"""<p>Projects {I(r'1, \dots, m')}; funding flows continuously. The <b>split</b> {I(share + '_t')} gives each project’s fraction at time {I('t')}.</p>
+      f"""<p>Projects {I(r'1, \dots, m')}; funding flows continuously; the <b>split</b> {I(share + '_t')}: each project’s fraction at time {I('t')}.</p>
 <p>An <b>AI</b> sets the split: right on most projects, wrong on some for a long time.</p>
 <p>Members {I(r'1, \dots, n')}; <b>view</b> {I(view + '_i')}: the split {I('i')} wants on reflection. Some maintain a project.</p>
-<p>Members notice problems now and then and may <b>flag</b> a project as too low or too high.</p>""",
+<p>Members <b>notice</b> an off project, for free, at rate {I(r'\mathrm{notice}')}.</p>""",
       '',
       flow_vis(False, 760), 'The AI’s split over time; one project is over-funded.'))
 
@@ -666,7 +692,7 @@ S(thm('Model', 'Questions and answers',
       f"""<p>A <b>question</b> shows a member two projects {I('a, b')} and their current amounts.</p>
 <p>The answer follows the member’s view, with noise: more to {I('a')}, about right, or more to {I('b')}.</p>
 <p><b>Exaggeration:</b> in the moment, members may want log-ratios inflated by {I(r'\mathrm{bel} \ge 1')}; typing a number may inflate them further, by {I(infl)}.</p>""",
-      '<p><b>Attention:</b> answered questions per day. Flags are nearly free.</p>',
+      '<p><b>Attention:</b> answered questions per day.</p>',
       card_vis()))
 
 S(thm('Model', 'What an answer does',
@@ -687,7 +713,7 @@ S(thm('What we want', 'Accuracy, little attention, robustness',
 S(f'''<section class="slide light">
   <p class="eyebrow">Candidates</p>
   <h2>Natural mechanisms: three choices combined</h2>
-  <p class="sub">Which pairs × who answers × what an answer does; plus the AI alone.</p>
+  <p class="sub">Which pairs × who answers × what an answer does; plus the AI alone.<br>A <b>flag</b> is a member’s report that a project looks off.</p>
   {mech_table()}
 </section>''')
 
@@ -712,6 +738,12 @@ S(thm('Theorem 3', 'Accuracy for attention',
 <p>Best step: {I(r'\mathrm{vol}/\sqrt{q}')}, smaller with more attention.</p>""",
       f"<p>Multipliers do at most {I(r'\sqrt{\pi/2} \approx 1.25')} times better, only for honest, normal answers.</p>",
       theory_track_vis(), 'Dots: simulation; curves: formula; 1 to 64 answers a day.'))
+
+S(thm('Theorem 4', 'Let noticing pick the questions',
+      f"""<p>A project becomes off. With uniform pairs ({I('A')} answers a day, {I('m')} projects), it is first asked about after {I(r'\tfrac{m}{2A}')} days on average; if flags pick the questions, after {I(r'1/\mathrm{notice}')}.</p>
+<p>So flags find problems sooner if and only if {I(r'A < m \cdot \mathrm{notice}/2')}.</p>""",
+      '<p>Flags only decide where questions go, not where the split rests (Theorem 1c), so interested members may flag.</p>',
+      detect_vis(), 'm = 98 projects; dots: where the two are equal.'))
 
 S(f'''<section class="slide light">
   <p class="eyebrow">Comparison</p>
@@ -743,7 +775,7 @@ S('''<section class="slide dark">
   <p class="eyebrow">Conclusion</p>
   <h2>Our advice</h2>
   <div class="rows ruled">
-    <div class="row"><span class="n">1</span><p>Flags pick the questions; random non-maintainers answer</p></div>
+    <div class="row"><span class="n">1</span><p>Anyone may flag; random non-maintainers answer</p></div>
     <div class="row"><span class="n">2</span><p>Answers give a direction; each moves a ratio by 5–10%</p></div>
     <div class="row"><span class="n">3</span><p>About 5 answers a day halve the AI’s error</p></div>
     <div class="row"><span class="n">4</span><p>Avoid open forums and typed multipliers</p></div>
