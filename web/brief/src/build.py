@@ -650,6 +650,18 @@ TITLE = f'''<section class="slide dark center">
 slides = [TITLE]
 S = slides.append
 
+S('''<section class="slide dark">
+  <p class="eyebrow">Executive summary</p>
+  <h2>Flag and sample, with small nudges</h2>
+  <div class="rows ruled">
+    <div class="row"><span class="n">1</span><p>An AI splits a fund continuously; members look only a little</p></div>
+    <div class="row"><span class="n">2</span><p>Which mechanism should let them steer it?</p></div>
+    <div class="row"><span class="n">3</span><p>Flags pick the questions; random non-maintainers nudge</p></div>
+    <div class="row"><span class="n">4</span><p>Each of these choices follows from a theorem</p></div>
+    <div class="row"><span class="n">5</span><p>In simulation: half the AI’s error at 5 answers a day</p></div>
+  </div>
+</section>''')
+
 S(f'''<section class="slide light">
   <p class="eyebrow">Motivation</p>
   <h2>An AI splits a stream of funding</h2>
@@ -745,11 +757,17 @@ S(thm('Theorem 4', 'Let noticing pick the questions',
       '<p>Flags only decide where questions go, not where the split rests (Theorem 1c), so interested members may flag.</p>',
       detect_vis(), 'm = 98 projects; dots: where the two are equal.'))
 
-S(f'''<section class="slide light">
+S('''<section class="slide light">
   <p class="eyebrow">Comparison</p>
-  <h2>Robustness at a glance</h2>
-  <p class="sub">Random non-maintainers answering with nudges have all four properties.</p>
-  {prop_table()}
+  <h2>Each choice follows from a theorem</h2>
+  <p class="sub">Flag and sample is the only candidate that makes all four choices.</p>
+  <table class="mt why-t"><colgroup><col style="width:30%"><col style="width:20%"><col style="width:40%"><col style="width:10%"></colgroup>
+  <tr><th>choice</th><th>instead of</th><th>because</th><th>result</th></tr>
+  <tr><td>answers are nudges</td><td>multipliers</td><td>bounded, typing-proof, nearly as accurate</td><td>Thm. 1, 3</td></tr>
+  <tr><td>non-maintainers answer</td><td>volunteers</td><td>volunteers capture overlooked projects</td><td>Thm. 2</td></tr>
+  <tr><td>flags pick questions</td><td>uniform, by share</td><td>finds problems sooner at low attention</td><td>Thm. 4, 1</td></tr>
+  <tr><td>steps shrink with attention</td><td>a fixed step</td><td>the best step falls like one over √rate</td><td>Thm. 3</td></tr>
+  </table>
 </section>''')
 
 FR, fs, eng = frontier_vis()
@@ -775,9 +793,10 @@ S('''<section class="slide dark">
   <p class="eyebrow">Conclusion</p>
   <h2>Our advice</h2>
   <div class="rows ruled">
-    <div class="row"><span class="n">1</span><p>Anyone may flag; random non-maintainers answer</p></div>
-    <div class="row"><span class="n">2</span><p>Answers give a direction; each moves a ratio by 5–10%</p></div>
-    <div class="row"><span class="n">3</span><p>About 5 answers a day halve the AI’s error</p></div>
+    <div class="row"><span class="n">1</span><p>Anyone may flag; flags pick the questions</p></div>
+    <div class="row"><span class="n">2</span><p>Random non-maintainers answer, with directions only</p></div>
+    <div class="row"><span class="n">3</span><p>Each answer moves a ratio by 5–10%; less as attention grows</p></div>
+    
     <div class="row"><span class="n">4</span><p>Avoid open forums and typed multipliers</p></div>
     <div class="row"><span class="n">5</span><p>Caveat: first check that beliefs are not too exaggerated</p></div>
   </div>
@@ -821,6 +840,7 @@ STYLE = '''<style>
 .pt td, .pt th { text-align: center; } .pt td:first-child, .pt th:first-child { text-align: left; }
 .pt small { font-weight: 400; font-size: 24px; }
 .yes { color: #2E8B57; font-weight: 800; font-size: 40px; } .no { color: #C0392B; font-weight: 800; font-size: 40px; }
+.why-t { font-size: 30px; } .why-t td { font-size: 30px; padding: 16px 18px; } .why-t td:first-child { font-weight: 700; }
 .rw { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 36px; margin-top: 10px; }
 .rw .box { background: var(--card); border: 3px solid var(--gray-light); border-radius: 24px; padding: 26px 32px; }
 .rw h3 { font-size: 40px; margin: 0 0 8px; }
