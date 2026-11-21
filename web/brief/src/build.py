@@ -520,6 +520,27 @@ def alloc_vis():
     return svg(w, h, b)
 
 
+def mix_vis():
+    d = res('mix_exp.json')
+    mixes = (0.0, 0.1, 0.25, 0.5, 0.75, 0.9)
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1, lo, hi = 100, 600, 420, 40, 5, 15
+    X = lambda f: X0 + f / 0.9 * (X1 - X0)
+    Y = lambda e: Y0 - (e - lo) / (hi - lo) * (Y0 - Y1)
+    for e in (6, 8, 10, 12, 14):
+        b += line(X0, Y(e), X1, Y(e), '#E3E2DD', 2) + text(X0 - 12, Y(e) + 9, f'{e}%', 24, GR, 'end')
+    b += line(X0, Y0, X1, Y0)
+    for f in (0, 0.25, 0.5, 0.75):
+        b += text(X(f), Y0 + 32, f'{f:g}', 24, GR)
+    for K, col, lab in ((2, GL, '1 a day'), (10, GR, '5 a day'), (24, '#3D4045', '12 a day'), (48, OR, '24 a day')):
+        pts = [(X(f), Y(d[f'{K}|{f}']['error'][0] * 100)) for f in mixes]
+        b += poly(pts, col, 5) + ''.join(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="7" fill="{col}"/>' for x, y in pts)
+        b += text(pts[-1][0] + 14, pts[-1][1] + 9, lab, 24, col if col != GL else GR, 'start', 800)
+    b += text((X0 + X1) / 2, 480, 'share of questions that follow flags', 26, GR)
+    b += text(X0, 24, 'misallocated funding', 26, GR, 'start', 700)
+    return svg(w, h, b)
+
+
 def policy_vis():
     steps = [('Flag', 'anyone, any time; signed, standing; opposite flags cancel; own project counts ½'),
              ('Sample', '½ of questions by net flags, ½ by share, each with a random partner'),
@@ -811,16 +832,23 @@ S(thm('Theorem 6', 'Ask about money and movement',
       '<p>Each project’s error falls like one over the fourth root of its rate (Theorem 3); the optimum equalizes the gains.</p>',
       alloc_vis(), '20 projects, 40 answers a day. In the GG24 simulation, weights from share to the power 0.5 to 1 do equally well.'))
 
+S(thm('Theorem 7', 'Ask first where flags point',
+      f"""<p>One question about project {I('j')}: share {I(share + '_j')}, log error {I('e_j')} with {I(r'|e_j| \ge ' + step)}, symmetric answer noise with distribution {I('F')}. To first order, it cuts misallocated funding by</p>
+<p class="eq">{I(share + r'_j \cdot ' + step + r' \cdot \big(2F(|e_j|) - 1\big)')}</p>
+<p>So the next question should go where this is largest; flags point at large errors.</p>""",
+      '<p>In simulation, any mix that gives flags at least half of the questions does equally well.</p>',
+      mix_vis(), 'GG24 simulation, best step for each mix.'))
+
 S('''<section class="slide light">
   <p class="eyebrow">Comparison</p>
   <h2>Each choice is forced or optimal</h2>
-  <p class="sub">So flag and sample, tuned, is the most accurate mechanism with all our properties, up to its mix of flags and shares.</p>
+  <p class="sub">So flag and sample, tuned, is the most accurate mechanism with all our properties.</p>
   <table class="mt why-t"><colgroup><col style="width:30%"><col style="width:20%"><col style="width:40%"><col style="width:10%"></colgroup>
   <tr><th>choice</th><th>instead of</th><th>because</th><th>result</th></tr>
   <tr><td>answers are nudges</td><td>multipliers</td><td>forced by typing-proofness</td><td>Thm. 5</td></tr>
   <tr><td>non-maintainers answer</td><td>volunteers</td><td>forced by capture-proofness</td><td>Thm. 5</td></tr>
   <tr><td>questions by share</td><td>uniform</td><td>nearly optimal attention</td><td>Thm. 6</td></tr>
-  <tr><td>flags pick questions</td><td>shares only</td><td>finds problems sooner at low attention</td><td>Thm. 4</td></tr>
+  <tr><td>flagged projects first</td><td>shares only</td><td>largest gain per question; found sooner</td><td>Thm. 7, 4</td></tr>
   <tr><td>step shrinks with attention</td><td>a fixed step</td><td>optimal step falls like one over √rate</td><td>Thm. 3</td></tr>
   </table>
 </section>''')
@@ -848,7 +876,7 @@ S('''<section class="slide dark">
   <p class="eyebrow">Conclusion</p>
   <h2>Our advice</h2>
   <div class="rows ruled">
-    <div class="row"><span class="n">1</span><p>Anyone may flag; flags pick the questions</p></div>
+    <div class="row"><span class="n">1</span><p>Anyone may flag; flagged projects are asked about first</p></div>
     <div class="row"><span class="n">2</span><p>Random non-maintainers answer, with directions only</p></div>
     <div class="row"><span class="n">3</span><p>Each answer moves a ratio by 5–10%; less as attention grows</p></div>
     
