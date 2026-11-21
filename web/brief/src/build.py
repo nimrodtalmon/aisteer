@@ -481,6 +481,45 @@ def detect_vis(m=98):
     return svg(w, h, b)
 
 
+def stretch_vis():
+    """Typing-proof: two reports on the same side of the current ratio can be stretched into each other."""
+    w, h, b = 760, 420, ''
+    X = lambda v: 60 + v * 640
+    b += line(40, 220, 720, 220, GL, 4)
+    g = 0.3
+    b += f'<rect x="{X(g)-4:.0f}" y="160" width="8" height="120" rx="4" fill="{DK}"/>' + text(X(g), 140, 'current', 28, DK, 'middle', 800)
+    for r, lab in ((0.55, 'report'), (0.92, 'exaggerated')):
+        b += f'<circle cx="{X(r):.0f}" cy="220" r="15" fill="{BLUE}"/>' + text(X(r), 290, lab, 26, BLUE, 'middle', 700)
+    b += f'<path d="M{X(0.55):.0f} 196 C {X(0.62):.0f} 120, {X(0.85):.0f} 120, {X(0.92):.0f} 196" fill="none" stroke="{BLUE}" stroke-width="4" stroke-dasharray="10 8"/>'
+    b += text(X(0.735), 110, 'stretch', 26, BLUE, 'middle', 700)
+    b += f'<path d="M{X(g)+10:.0f} 360 l{0.1*640:.0f} 0 l0 -14 l24 18 l-24 18 l0 -14 l-{0.1*640:.0f} 0 Z" fill="{OR}"/>'
+    b += text(X(g) + 120, 372, 'one step either way', 26, OR, 'start', 800)
+    return svg(w, h, b)
+
+
+def alloc_vis():
+    d = res('agenda_theory.json')
+    w, h, b = 760, 500, ''
+    X0, X1, Y0, Y1, hi = 100, 740, 400, 50, 7.0
+    Y = lambda v: Y0 - v / hi * (Y0 - Y1)
+    b += line(X0, Y0, X1, Y0)
+    for v in (2, 4, 6):
+        b += line(X0, Y(v), X1, Y(v), '#E3E2DD', 2) + text(X0 - 14, Y(v) + 9, f'{v}%', 24, GR, 'end')
+    names = [('uniform', 'uniform'), ('by share', 'by share'), ('optimal', 'optimal')]
+    gw = (X1 - X0) / 3
+    for k, (key, lab) in enumerate(names):
+        x = X0 + k * gw + gw / 2
+        th, sm = d[key]['theory'] * 100, d[key]['sim'] * 100
+        b += f'<rect x="{x-50:.0f}" y="{Y(th):.0f}" width="44" height="{Y0-Y(th):.0f}" rx="5" fill="{GL}"/>'
+        b += f'<rect x="{x+6:.0f}" y="{Y(sm):.0f}" width="44" height="{Y0-Y(sm):.0f}" rx="5" fill="{OR}"/>'
+        b += text(x, Y(max(th, sm)) - 12, f'{sm:.2f}%', 24, DK, 'middle', 800)
+        b += text(x, Y0 + 34, lab, 26, DK, 'middle', 700)
+    b += f'<rect x="{X0}" y="456" width="24" height="24" rx="4" fill="{GL}"/>' + text(X0 + 32, 476, 'formula', 24, DK, 'start', 700)
+    b += f'<rect x="{X0+150}" y="456" width="24" height="24" rx="4" fill="{OR}"/>' + text(X0 + 182, 476, 'simulation', 24, DK, 'start', 700)
+    b += text(X0, 28, 'misallocated funding', 26, GR, 'start', 700)
+    return svg(w, h, b)
+
+
 def policy_vis():
     steps = [('Flag', 'anyone, any time; signed, standing; opposite flags cancel; own project counts ½'),
              ('Sample', '½ of questions by net flags, ½ by share, each with a random partner'),
@@ -657,7 +696,7 @@ S('''<section class="slide dark">
     <div class="row"><span class="n">1</span><p>An AI splits a fund continuously; members look only a little</p></div>
     <div class="row"><span class="n">2</span><p>Which mechanism should let them steer it?</p></div>
     <div class="row"><span class="n">3</span><p>Flags pick the questions; random non-maintainers nudge</p></div>
-    <div class="row"><span class="n">4</span><p>Each of these choices follows from a theorem</p></div>
+    <div class="row"><span class="n">4</span><p>Each choice is forced by our requirements, or optimal</p></div>
     <div class="row"><span class="n">5</span><p>In simulation: half the AI’s error at 5 answers a day</p></div>
   </div>
 </section>''')
@@ -757,16 +796,32 @@ S(thm('Theorem 4', 'Let noticing pick the questions',
       '<p>Flags only decide where questions go, not where the split rests (Theorem 1c), so interested members may flag.</p>',
       detect_vis(), 'm = 98 projects; dots: where the two are equal.'))
 
+S(thm('Theorem 5', 'Our requirements force nudges and recusal',
+      f"""<p>A rule maps the current log-ratio {I('g')} and a report {I('r')} to a new one. <b>Typing-proof:</b> stretching {I('r')} away from {I('g')} changes nothing. <b>Neutral:</b> swapping {I('a, b')} mirrors it. <b>Level-free:</b> only {I('r - g')} matters.</p>
+<p>(a) A responsive rule has all three if and only if it is a nudge.</p>
+<p>(b) Nudges are capture-proof exactly when maintainers skip their own projects.</p>""",
+      '',
+      stretch_vis(), 'Proof idea of (a): reports on one side of the current ratio stretch into each other. (b) is Theorem 2.'))
+
+AL = res('agenda_theory.json')
+S(thm('Theorem 6', 'Ask about money and movement',
+      f"""<p>Projects tracked separately, questions about {I('j')} at rate {I('q_j')}, total {I('A')}, best steps. To first order, misallocated funding is smallest for</p>
+<p class="eq">{I(r'q_j \propto \big(' + share + r'_j \cdot \sqrt{\mathrm{vol}_j}\big)^{4/5}')}</p>
+<p>Weighting by share alone is nearly as good.</p>""",
+      '<p>Each project’s error falls like one over the fourth root of its rate (Theorem 3); the optimum equalizes the gains.</p>',
+      alloc_vis(), '20 projects, 40 answers a day. In the GG24 simulation, weights from share to the power 0.5 to 1 do equally well.'))
+
 S('''<section class="slide light">
   <p class="eyebrow">Comparison</p>
-  <h2>Each choice follows from a theorem</h2>
-  <p class="sub">Flag and sample is the only candidate that makes all four choices.</p>
+  <h2>Each choice is forced or optimal</h2>
+  <p class="sub">So flag and sample, tuned, is the most accurate mechanism with all our properties, up to its mix of flags and shares.</p>
   <table class="mt why-t"><colgroup><col style="width:30%"><col style="width:20%"><col style="width:40%"><col style="width:10%"></colgroup>
   <tr><th>choice</th><th>instead of</th><th>because</th><th>result</th></tr>
-  <tr><td>answers are nudges</td><td>multipliers</td><td>bounded, typing-proof, nearly as accurate</td><td>Thm. 1, 3</td></tr>
-  <tr><td>non-maintainers answer</td><td>volunteers</td><td>volunteers capture overlooked projects</td><td>Thm. 2</td></tr>
-  <tr><td>flags pick questions</td><td>uniform, by share</td><td>finds problems sooner at low attention</td><td>Thm. 4, 1</td></tr>
-  <tr><td>steps shrink with attention</td><td>a fixed step</td><td>the best step falls like one over √rate</td><td>Thm. 3</td></tr>
+  <tr><td>answers are nudges</td><td>multipliers</td><td>forced by typing-proofness</td><td>Thm. 5</td></tr>
+  <tr><td>non-maintainers answer</td><td>volunteers</td><td>forced by capture-proofness</td><td>Thm. 5</td></tr>
+  <tr><td>questions by share</td><td>uniform</td><td>nearly optimal attention</td><td>Thm. 6</td></tr>
+  <tr><td>flags pick questions</td><td>shares only</td><td>finds problems sooner at low attention</td><td>Thm. 4</td></tr>
+  <tr><td>step shrinks with attention</td><td>a fixed step</td><td>optimal step falls like one over √rate</td><td>Thm. 3</td></tr>
   </table>
 </section>''')
 

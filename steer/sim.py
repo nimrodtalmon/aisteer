@@ -83,6 +83,7 @@ class Policy:
     flag_decay: float = 1.0          # daily decay of flag scores (1 = standing flags, cleared by verdicts)
     self_flag_weight: float = 0.5    # weight of a maintainer's flag on their own item
     flag_mix: float = 0.5            # share of invitations that go to flagged items
+    money_exp: float = 1.0           # pairs by share: weight share**money_exp (theory: about 0.75 to 0.8)
     escalate_at: float = 0.0         # net flag score that convenes a larger panel (0 = never)
     escalation_panel: int = 9        # judgments asked from the larger panel
 
@@ -156,7 +157,7 @@ def run(world: World, policy: Policy, seed: int = 0, record=False):
         share = softmax(x)
         if policy.pair_rule == "random":
             a, b = rng.choice(m, 2, replace=False); return a, b
-        w_money = share + 1.0 / m * 0.05
+        w_money = share ** policy.money_exp + (1.0 / m) ** policy.money_exp * 0.05
         if policy.pair_rule == "money":
             a = rng.choice(m, p=w_money / w_money.sum())
         else:  # flags: part of the invitations go to flagged items, the rest by money
