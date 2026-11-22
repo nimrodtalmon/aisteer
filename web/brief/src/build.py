@@ -790,7 +790,7 @@ S(f'''<section class="slide light">
 </section>''')
 
 EX, exm, exmean = exaggeration_vis()
-S(thm('Theorem 1', 'Nudges are bounded, typing-proof, agenda-free',
+S(thm('Theorem 1 <span class="lean">Lean ✓</span>', 'Nudges are bounded, typing-proof, agenda-free',
       f"""<p>Under nudges, with small steps:</p>
 <p>(a) one answer moves a ratio by a factor of at most {I(r'e^{' + step + '}')};</p>
 <p>(b) each pair rests at its median wanted ratio, inflated by {I(r'\mathrm{bel}')}, not by {I(infl)};</p>
@@ -798,26 +798,26 @@ S(thm('Theorem 1', 'Nudges are bounded, typing-proof, agenda-free',
       f"<p>Multipliers fail (a) and (b): they rest at {I(r'{\mathrm{bel} \times ' + infl + '}')} times the mean.</p>",
       EX, f"Nine wanted ratios; {I(r'\mathrm{bel} = 1')}, {I(infl + ' = 2.7')}"))
 
-S(thm('Theorem 2', 'Open forums are captured; recusal fixes it',
+S(thm('Theorem 2 <span class="lean">Lean ✓</span>', 'Open forums are captured; recusal fixes it',
       f"""<p>Suppose a fraction {I(frac)} of the answers about project {I('j')} come from its maintainers, who want {I('j')} higher by a factor {I(r'e^{' + bias + '}')}.</p>
 <p>Then {I('j')}’s resting share grows with {I(frac)}, up to that factor above the consensus.</p>""",
       f"<p>Recusal sets {I(frac + ' = 0')}; in an open forum, {I(frac + r' \approx 1')} for projects nobody else looks at.</p>",
       mixture_vis(), f"{I(bias + ' = 1')}; wanted log-ratios normal, standard deviation 0.71."))
 
-S(thm('Theorem 3', 'Accuracy for attention',
+S(thm('Theorem 3 <span class="lean">Lean ✓ optimum</span>', 'Accuracy for attention',
       f"""<p>One pair, questions at rate {I('q')}; the median drifts with volatility {I(r'\mathrm{vol}')}; answer noise has density {I(r'\mathrm{dens}')} at zero. Nudges’ mean-square error is about</p>
 <p class="eq">{I(r'\displaystyle\frac{q \cdot ' + step + r'^2 + \mathrm{vol}^2}{4 \cdot q \cdot ' + step + r' \cdot \mathrm{dens}}')}</p>
 <p>Best step: {I(r'\mathrm{vol}/\sqrt{q}')}, smaller with more attention.</p>""",
       f"<p>Multipliers do at most {I(r'\sqrt{\pi/2} \approx 1.25')} times better, only for honest, normal answers.</p>",
       theory_track_vis(), 'Dots: simulation; curves: formula; 1 to 64 answers a day.'))
 
-S(thm('Theorem 4', 'Let noticing pick the questions',
+S(thm('Theorem 4 <span class="lean">Lean ✓</span>', 'Let noticing pick the questions',
       f"""<p>A project becomes off. With uniform pairs ({I('A')} answers a day, {I('m')} projects), it is first asked about after {I(r'\tfrac{m}{2A}')} days on average; if flags pick the questions, after {I(r'1/\mathrm{notice}')}.</p>
 <p>So flags find problems sooner if and only if {I(r'A < m \cdot \mathrm{notice}/2')}.</p>""",
       '<p>Flags only decide where questions go, not where the split rests (Theorem 1c), so interested members may flag.</p>',
       detect_vis(), 'm = 98 projects; dots: where the two are equal.'))
 
-S(thm('Theorem 5', 'Our requirements force nudges and recusal',
+S(thm('Theorem 5 <span class="lean">Lean ✓</span>', 'Our requirements force nudges and recusal',
       f"""<p>A rule maps the current log-ratio {I('g')} and a report {I('r')} to a new one. <b>Typing-proof:</b> stretching {I('r')} away from {I('g')} changes nothing. <b>Neutral:</b> swapping {I('a, b')} mirrors it. <b>Level-free:</b> only {I('r - g')} matters.</p>
 <p>(a) A responsive rule has all three if and only if it is a nudge.</p>
 <p>(b) Nudges are capture-proof exactly when maintainers skip their own projects.</p>""",
@@ -825,14 +825,14 @@ S(thm('Theorem 5', 'Our requirements force nudges and recusal',
       stretch_vis(), 'Proof idea of (a): reports on one side of the current ratio stretch into each other. (b) is Theorem 2.'))
 
 AL = res('agenda_theory.json')
-S(thm('Theorem 6', 'Ask about money and movement',
+S(thm('Theorem 6 <span class="lean">Lean ✓ optimum</span>', 'Ask about money and movement',
       f"""<p>Projects tracked separately, questions about {I('j')} at rate {I('q_j')}, total {I('A')}, best steps. To first order, misallocated funding is smallest for</p>
 <p class="eq">{I(r'q_j \propto \big(' + share + r'_j \cdot \sqrt{\mathrm{vol}_j}\big)^{4/5}')}</p>
 <p>Weighting by share alone is nearly as good.</p>""",
       '<p>Each project’s error falls like one over the fourth root of its rate (Theorem 3); the optimum equalizes the gains.</p>',
       alloc_vis(), '20 projects, 40 answers a day. In the GG24 simulation, weights from share to the power 0.5 to 1 do equally well.'))
 
-S(thm('Theorem 7', 'Ask first where flags point',
+S(thm('Theorem 7 <span class="lean">Lean ✓</span>', 'Ask first where flags point',
       f"""<p>One question about project {I('j')}: share {I(share + '_j')}, log error {I('e_j')} with {I(r'|e_j| \ge ' + step)}, symmetric answer noise with distribution {I('F')}. To first order, it cuts misallocated funding by</p>
 <p class="eq">{I(share + r'_j \cdot ' + step + r' \cdot \big(2F(|e_j|) - 1\big)')}</p>
 <p>So the next question should go where this is largest; flags point at large errors.</p>""",
@@ -883,6 +883,7 @@ S('''<section class="slide dark">
     <div class="row"><span class="n">4</span><p>Avoid open forums and typed multipliers</p></div>
     <div class="row"><span class="n">5</span><p>Caveat: first check that beliefs are not too exaggerated</p></div>
   </div>
+  <p class="muted" style="margin-top:12px">Lean ✓: proved in Lean 4 with Mathlib, no sorry. Theorems 3, 6: the optimum only.</p>
 </section>''')
 
 slides.append(TITLE)
@@ -894,6 +895,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>"""
 
 STYLE = '''<style>
+.lean { font-size: 28px; font-weight: 600; color: #2e7d4f; border: 2px solid #2e7d4f; border-radius: 10px; padding: 2px 12px; margin-left: 16px; vertical-align: middle; }
 .sub { font-size: 42px; color: var(--gray); margin-top: -20px; }
 .split { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 56px; align-items: center; margin-block: auto; }
 .stack { display: flex; flex-direction: column; gap: 10px; margin-top: -10px; }
