@@ -184,6 +184,34 @@ theorem capture {F : ℝ → ℝ} (hF : StrictMono F) (hmed : F 0 = 1 / 2)
     linarith
   linarith
 
+/-- **Theorem 2 / 5(b), bound.** Maintainers never move the rest point beyond their bias. -/
+theorem capture_lt_bias {F : ℝ → ℝ} (hF : StrictMono F) (hmed : F 0 = 1 / 2)
+    {f bias : ℝ} (hf0 : 0 ≤ f) (hf1 : f < 1) (hb : 0 < bias) (x : ℝ)
+    (hx : mixture F f bias x = 1 / 2) : x < bias := by
+  by_contra h
+  push_neg at h
+  have h1 : 1 / 2 < F x := by rw [← hmed]; exact hF (by linarith)
+  have h2 : 1 / 2 ≤ F (x - bias) := by rw [← hmed]; exact hF.monotone (by linarith)
+  unfold mixture at hx
+  have e1 : (1 - f) * (1 / 2) < (1 - f) * F x := mul_lt_mul_of_pos_left h1 (by linarith)
+  have e2 : f * (1 / 2) ≤ f * F (x - bias) := mul_le_mul_of_nonneg_left h2 hf0
+  linarith
+
+/-- **Theorem 2 / 5(b), monotonicity.** More maintainer answers, a higher rest point. -/
+theorem capture_mono {F : ℝ → ℝ} (hF : StrictMono F)
+    {f f' bias : ℝ} (hf0 : 0 ≤ f) (hff : f < f') (hf1 : f' ≤ 1) (hb : 0 < bias) {x x' : ℝ}
+    (hx : mixture F f bias x = 1 / 2) (hx' : mixture F f' bias x' = 1 / 2) : x < x' := by
+  by_contra h
+  push_neg at h
+  unfold mixture at hx hx'
+  have m1 : F x' ≤ F x := hF.monotone h
+  have m2 : F (x' - bias) ≤ F (x - bias) := hF.monotone (by linarith)
+  have d : F (x - bias) < F x := hF (by linarith)
+  have e1 : (1 - f') * F x' ≤ (1 - f') * F x := mul_le_mul_of_nonneg_left m1 (by linarith)
+  have e2 : f' * F (x' - bias) ≤ f' * F (x - bias) := mul_le_mul_of_nonneg_left m2 (by linarith)
+  have e3 : (f' - f) * F (x - bias) < (f' - f) * F x := mul_lt_mul_of_pos_left d (by linarith)
+  nlinarith
+
 /-- **Theorem 1(b), belief exaggeration.** If wanted log-ratios are exaggerated by
 `bel > 0`, the median is exaggerated by `bel`: the rest point moves from `m` to
 `bel * m`. (`G` is the distribution function of the exaggerated values.) -/
