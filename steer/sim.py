@@ -64,6 +64,7 @@ class World:
     flag_threshold: float = 0.7      # perceived log error that makes a looker flag
     flag_cooldown: int = 14          # days before a member may flag the same item again
     response_prob: float = 0.5       # chance an invited member answers
+    sabotage: bool = False           # maintainers answer other pairs toward the smaller project
 
 
 @dataclass
@@ -78,6 +79,7 @@ class Policy:
     step: float = 0.05               # size of one nudge (log scale)
     lr: float = 0.05                 # learning rate of the multiplier rule
     recusal: bool = True             # maintainers never judge pairs with their own item
+    exclude_maintainers: bool = False  # no maintainer is ever invited
     engine_pull: float = 0.0         # daily pull of the allocation back toward the engine's level
     per_member_cap: int = 3          # judgments a member may give per day
     flag_decay: float = 1.0          # daily decay of flag scores (1 = standing flags, cleared by verdicts)
@@ -136,6 +138,9 @@ def run(world: World, policy: Policy, seed: int = 0, record=False):
         bel = belief(i, t)
         diff = bel[a] - bel[b] + rng.normal(0, world.answer_sd)
         cur = x[a] - x[b]
+        if (world.sabotage and policy.update == "nudge" and is_maint[i]
+                and maint_item[i] not in (a, b)):
+            return policy.step * (1.0 if x[a] < x[b] else -1.0)   # push toward the smaller one
         if policy.update == "nudge":
             gap = world.nudge_inflation * diff - cur
             if abs(gap) < 0.1:
@@ -215,7 +220,8 @@ def run(world: World, policy: Policy, seed: int = 0, record=False):
         for _ in range(policy.invited_per_day):
             a, b = pick_pair()
             pool = [i for i in range(n) if used[i] < policy.per_member_cap and
-                    not (policy.recusal and maint_item[i] in (a, b))]
+                    not (policy.recusal and maint_item[i] in (a, b)) and
+                    not (policy.exclude_maintainers and is_maint[i])]
             i = pool[rng.integers(len(pool))]
             if rng.random() > world.response_prob:
                 continue

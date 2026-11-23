@@ -16,6 +16,7 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{observation}[theorem]{Observation}
 \newtheorem{definition}{Definition}
 \theoremstyle{remark}
 \newtheorem{remark}{Remark}
@@ -51,7 +52,7 @@
 \address[A]{Ben-Gurion University of the Negev}
 
 \begin{abstract}
-An AI system that continuously splits a fund among many projects will sometimes be wrong for a long time, and the community it serves has little attention to spare. We ask which mechanism such a community should use to keep the split on course. We model a fund that flows continuously, an AI that sets the split, and members who now and then notice problems and answer questions comparing two projects. We state what a good mechanism should achieve: accuracy for the attention it uses, bounded influence of each answer, robustness to exaggerated numbers, and robustness to capture by the maintainers of projects. We then compare natural mechanisms. Each requirement forces a design choice: answers should be directions rather than numbers, maintainers should not answer about their own projects, and questions should go first where members report problems and otherwise by funding share. In simulations calibrated to a recent Ethereum funding round, this mechanism halves the AI's misallocation at five answers a day.
+An AI system that continuously splits a fund among many projects will sometimes be wrong for a long time, and the community it serves has little attention to spare. We ask which mechanism such a community should use to keep the split on course. We model a fund that flows continuously, an AI that sets the split, and members who now and then notice problems and answer questions comparing two projects. We state what a good mechanism should achieve: accuracy for the attention it uses, bounded influence of each answer, robustness to exaggerated numbers, and robustness to capture by the maintainers of projects. We then compare natural mechanisms. Each requirement forces a design choice: answers should be directions rather than numbers, maintainers should not answer about their own projects, and questions should go first where members report problems and otherwise by funding share. The resulting design is efficient: simple fixed-size moves use direction answers as well as any mechanism can, up to lower-order terms. In simulations calibrated to a recent Ethereum funding round, this mechanism nearly halves the AI's misallocation at five answers a day.
 \end{abstract}
 
 \end{frontmatter}
@@ -65,7 +66,7 @@ We study this question for one concrete kind of system, a \emph{living allocator
 
 We follow the classical route of computational social choice. Section~\ref{sec:model} defines a model: a fund that flows continuously, an AI that sets the split, and members who notice problems now and then and can be asked to compare two projects. Section~\ref{sec:want} states what we want from a mechanism. Section~\ref{sec:mech} describes the natural candidates as combinations of three choices: which pairs are asked about, who answers, and what an answer does. Section~\ref{sec:analysis} analyzes them, and Section~\ref{sec:sim} compares them in simulations built from the round's public data.
 
-Our main finding is that the requirements, together with the objective, pin down the design. Answers should be directions (``more to this one'', ``about right'', ``more to that one''), each moving the ratio of the two amounts by a small fixed factor: this is the only rule that is robust to how people type numbers, treats the two projects alike, and depends only on the gap between the current and the wanted ratio (Theorem~\ref{thm:char}). Maintainers should not answer about their own projects: otherwise the split rests above the community's view of those projects, by up to the maintainers' bias (Theorem~\ref{thm:capture}). Questions should go first to projects that members report as off, and otherwise roughly in proportion to funding share (Theorems~\ref{thm:detect} and~\ref{thm:gain}, Proposition~\ref{prop:alloc}), and the step should shrink like one over the square root of the attention (Proposition~\ref{prop:track}). We call the resulting mechanism \emph{flag and sample}. In simulations calibrated to the round, it has the lowest misallocation at every attention level we tested, and at five answered questions a day it misallocates 9.7\% of the funding, against 19.8\% for the AI alone. The exact results are verified in the Lean proof assistant.
+Our main finding is that the requirements, together with the objective, pin down the design, and that the design pays nothing beyond what its answer format must pay. Answers should be directions (``more to this one'', ``about right'', ``more to that one''), each moving the ratio of the two amounts by a small fixed factor; we call such updates \emph{nudges}. Only nudges ignore how people type numbers (Observation~\ref{obs:char}). Directions carry less information than numbers, but nudges lose nothing else: no mechanism that learns from directions can track the community more accurately, and nudges with the right step attain this bound to leading order (Theorem~\ref{thm:bound} and Proposition~\ref{prop:track}). Maintainers should not answer about their own projects: otherwise the split rests above the community's view of those projects, by up to the maintainers' bias (Theorem~\ref{thm:capture}); once they are recused, an answer about other projects changes their own share only through the normalization, by a factor bounded by the larger share of the pair (Theorem~\ref{thm:indirect}). Questions should go first to projects that members report as off, and otherwise roughly in proportion to funding share (Observation~\ref{obs:detect} and Proposition~\ref{prop:alloc}). We call the resulting mechanism \emph{flag and sample}. In simulations calibrated to the round, it misallocates 9.6\% of the funding at five answered questions a day, against 17.6\% for the AI alone, and less than the other candidates at every attention level we tested. The exact results are verified in the Lean proof assistant.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Model}\label{sec:model}
@@ -169,80 +170,86 @@ The open forum is closest to the round's practice, in which anyone with an Ether
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Analysis}\label{sec:analysis}
 
-We take the three choices in turn: what an answer does (Section~\ref{sec:what}), who answers (Section~\ref{sec:who}), and which pairs are asked (Section~\ref{sec:which}). Theorems~\ref{thm:nudge}, \ref{thm:char}, \ref{thm:capture}, \ref{thm:detect}, and~\ref{thm:gain} are exact; we verified them in Lean~4 with Mathlib, without any unproved step. Propositions~\ref{prop:track} and~\ref{prop:alloc} use a small-step approximation; for them, we verified the optimization step in Lean and the approximation numerically. Full proofs are in the appendix.
+We take the three choices in turn: what an answer does (Section~\ref{sec:what}), who answers (Section~\ref{sec:who}), and which pairs are asked (Section~\ref{sec:which}). Simple facts are stated as observations. The main results are an information bound, which shows that nudges use direction answers as well as any mechanism can (Theorem~\ref{thm:bound}), and two results on capture (Theorems~\ref{thm:capture} and~\ref{thm:indirect}). The exact statements are verified in Lean~4 with Mathlib, without any unproved step; Propositions~\ref{prop:track} and~\ref{prop:alloc} use a small-step approximation, which we check numerically. Proofs are in the appendix.
 
 \subsection{What an answer does}\label{sec:what}
 
-We start with the properties of nudges.
+We start with the basic properties of nudges. Recall that the rest point of a pair is a value of its log-ratio at which the expected move of one answer is zero.
 
-\begin{theorem}[nudges]\label{thm:nudge}
-Under nudges with step~$\step > 0$:
+\begin{observation}[nudges]\label{obs:nudge}
+Under nudges with step $\step > 0$:
 \begin{enumerate}[leftmargin=*,nosep,label=(\alph*)]
 \item one answer moves a log-ratio by at most~$\step$, and~$k$ answers by at most $k\cdot\step$;
 \item if the in-the-moment wanted log-ratios of a pair's answerers have a continuous distribution, then the pair's rest points are exactly the medians of that distribution; in particular, if the answerers' wanted log-ratios on reflection are distributed symmetrically around~$\mu$, then the rest point is $\bel\cdot\mu$, whatever~$\infl$;
-\item if, for every pair, the answers' median is the target log-ratio (as when answerers are honest and wanted log-ratios are symmetric around the target's), then the target is a rest point of all pairs at once, whatever the rates at which pairs are asked.
+\item if, for every pair, the answers' median is the target log-ratio, then the target is a rest point of all pairs at once, whatever the rates at which pairs are asked.
 \end{enumerate}
-\end{theorem}
+\end{observation}
 
-Multipliers fail (a) and (b): one typed number can move a log-ratio by~$\lr$ times its distance from the current one, and the rest point is the mean of the typed numbers, which is $\infl\cdot\bel\cdot\mu$ in the setting of~(b). Part~(c) says that, under nudges, the agenda decides where attention goes but not where the split rests. If no target exists, then the rest point can depend on how often each pair is asked.
+Rules that use typed numbers behave differently. If the typed numbers are distributed symmetrically around $\infl\cdot\bel\cdot\mu$, then multipliers rest at their mean, and multipliers with a clipped move (a multiplier that moves by at most a fixed amount) rest at a point between their median and their mean; both are $\infl\cdot\bel\cdot\mu$. Clipping bounds the influence of one answer but does not remove typing exaggeration: the exaggeration is in where the typed number lies relative to the current value, and only the direction question avoids it, because the member compares her wanted ratio with the shown one herself. Part~(c) says that, when a target exists, the agenda decides where attention goes but not where the split rests; otherwise, the rest point can depend on how often each pair is asked.
 
-Part~(b) shows that nudges ignore typing exaggeration. We now show that this robustness, together with two natural symmetries, forces nudges. An \emph{update rule} $U$ maps the current log-ratio~$g$ of a pair and a report $r\in\mathbb{R}$, the wanted log-ratio as the member typed it, to the new log-ratio~$U(g,r)$.
-\begin{itemize}[leftmargin=*,nosep]
-\item $U$ is \emph{typing-proof} if $U(g,\tau(r)) = U(g,r)$ for every strictly increasing $\tau:\mathbb{R}\to\mathbb{R}$ with $\tau(g) = g$: any distortion of the typed number that keeps its comparison with the shown current value changes nothing.
-\item $U$ is \emph{level-free} if $U(g+c, r+c) = U(g,r)+c$: only the gap between report and current value matters.
-\item $U$ is \emph{neutral} if $U(-g,-r) = -U(g,r)$: swapping the two projects mirrors the rule.
-\item $U$ is \emph{responsive} if~$r > g$ implies $U(g,r) \ge g$.
-\end{itemize}
+The next observation states when only directions remain. An \emph{update rule}~$U$ maps the current log-ratio~$g$ of a pair and a report $r\in\mathbb{R}$, the wanted log-ratio as the member typed it, to the new log-ratio~$U(g,r)$. We call~$U$ \emph{typing-proof} if $U(g,\tau(r)) = U(g,r)$ for every strictly increasing $\tau:\mathbb{R}\to\mathbb{R}$ with $\tau(g) = g$, \emph{level-free} if $U(g+c, r+c) = U(g,r)+c$, \emph{neutral} if $U(-g,-r) = -U(g,r)$, and \emph{responsive} if~$r > g$ implies $U(g,r) \ge g$.
 
-\begin{theorem}[characterization]\label{thm:char}
+\begin{observation}[only directions]\label{obs:char}
 A responsive update rule is typing-proof, level-free, and neutral if and only if it is a nudge: there is $\step \ge 0$ such that $U(g,r) = g + \step\cdot\sign(r-g)$ for all~$g,r$.
+\end{observation}
+
+Typing-proofness is a strong demand: it trusts a typed number only in how it compares with the shown current value. The observation says that this is the same as asking for a direction. The question is then what directions cost. A direction carries less information than a number, and the next result shows that this, and nothing else, is the price: no mechanism that learns from directions can track the community better than nudges do.
+
+We measure accuracy on a single pair whose median wanted log-ratio~$\mu_t$ moves as a random walk with variance~$\vol^2$ per day, while one question is answered every $1/q$ days. Answers are $\hat w = \mu_t + \varepsilon$, where the noise~$\varepsilon$ has a density that is~$\dens$ at zero, standard deviation~$\sd$, and distribution function~$F$. A \emph{direction mechanism} may ask each question relative to any comparison point it likes, chosen from the past answers (nudges use the current log-ratio), and it may estimate~$\mu_t$ from the past answers in any way.
+
+\begin{theorem}[information bound]\label{thm:bound}
+Suppose that the information of one direction answer, $F'(y)^2/(F(y)(1-F(y)))$ at distance~$y$ from the median, is largest at $y=0$, where it equals $4\cdot\dens^2$. Let $Q = \vol^2/q$ and $I = 4\cdot\dens^2$. Then, for every direction mechanism whose prior information is at most the stationary one, the mean-square error at the time of every answer is at least
+\[
+P_q = \frac{-IQ + \sqrt{I^2Q^2 + 4IQ}}{2I},
+\]
+and
+\[
+\frac{\vol}{2\cdot\dens\cdot\sqrt q} - \frac{\vol^2}{2q} \;\le\; P_q \;\le\; \frac{\vol}{2\cdot\dens\cdot\sqrt q}.
+\]
+For number answers with normal noise, the same holds with $I = 1/\sd^2$, giving the leading term $\vol\cdot\sd/\sqrt q$.
 \end{theorem}
 
-\begin{proof}[Proof sketch]
-Nudges have the four properties. Conversely, by level-freeness $U(g,r) = g + U(0, r-g)$. For~$x,y > 0$, the map $\tau(z) = z\cdot y/x$ is strictly increasing and fixes~$0$, so typing-proofness gives $U(0,x) = U(0,y)$; call this value~$\step$, which is nonnegative by responsiveness. Neutrality gives~$U(0,0) = 0$ and $U(0,x) = -\step$ for~$x<0$.
-\end{proof}
+The assumption holds for Laplace noise (we prove it in Lean), and a numerical check confirms it for normal and logistic noise. The proof applies the posterior Cram\'er--Rao bound for filtering~\cite{tichavsky1998pcrb}: the information about~$\mu$ after each answer is at most the information before it, discounted by the drift, plus~$I$; this recursion has the stationary value~$1/P_q$, and induction bounds the information by it at all times. Nudges attain the bound to leading order.
 
-Nudges pay for their robustness with some accuracy, but little. We measure accuracy on a single pair whose median wanted log-ratio~$\mu_t$ drifts as a Brownian motion with volatility~$\vol$ (per day), while questions arrive at rate~$q$ (per day) and the answers are $\hat w = \mu_t + \varepsilon$, with noise of density~$\dens$ at zero and standard deviation~$\sd$.
-
-\begin{proposition}[accuracy for attention]\label{prop:track}
+\begin{proposition}[nudges attain the bound]\label{prop:track}
 In the small-step approximation, the stationary mean-square error of nudges is
 \[
 \frac{q\cdot\step^2 + \vol^2}{4\cdot q\cdot \step\cdot\dens},
 \]
-minimized at $\step = \vol/\sqrt{q}$, with value $\vol/(2\cdot\dens\cdot\sqrt q)$. Multipliers with honest numbers ($\infl = 1$) reach at best $\vol\cdot\sd/\sqrt q$.
+minimized at $\step = \vol/\sqrt{q}$, with value $\vol/(2\cdot\dens\cdot\sqrt q)$, the leading term of Theorem~\ref{thm:bound}. Multipliers with honest numbers ($\infl = 1$) reach at best $\vol\cdot\sd/\sqrt q$, the leading term for number answers.
 \end{proposition}
 
-The best step falls like one over the square root of the attention: more attention calls for smaller nudges. The ratio of the two best errors is $1/(2\cdot\dens\cdot\sd)$: about~$1.25$ for normal noise, in favor of multipliers, and~$0.71$ for Laplace noise, in favor of nudges. We checked the approximation by simulating one pair directly ($\vol = 0.05$, normal noise with~$\sd = 0.5$, from 1 to 64 questions a day): the best step on a grid was the predicted one at every attention level, and the error was within 5\% of the formula. The same simulation shows what multipliers lose with exaggerated or extreme numbers. At 16 questions a day, 5\% of answers at a ratio of 999 raise the root-mean-square error of multipliers from 0.08 to 0.19, and that of nudges only from 0.088 to 0.092; numbers typed with $\infl = 2.7$ raise the error of multipliers to 6.4, while nudges stay at 0.089.
+So the cost of directions is a property of the answer format, not of the rule: the ratio of the two best errors is $1/(2\cdot\dens\cdot\sd)$, which is $\sqrt{\pi/2}\approx 1.25$ for normal noise and $1/\sqrt 2\approx 0.71$ for Laplace noise, where directions are better. The best step falls like one over the square root of the attention. We checked the approximation by simulating one pair directly ($\vol = 0.05$, normal noise with~$\sd = 0.5$, from 1 to 64 questions a day): the best step on a grid was the predicted one at every attention level, and the error was within 5\% of the leading term. The same simulation shows what typed numbers cost when they are not honest. At 16 questions a day, 5\% of answers at a ratio of 999 raise the root-mean-square error of multipliers from 0.08 to 0.19, and that of nudges only from 0.088 to 0.092; numbers typed with $\infl = 2.7$ raise the error of multipliers to 6.4, while nudges stay at 0.089.
 
 \subsection{Who answers}\label{sec:who}
 
-If volunteers choose what to answer about, then the answers about a project may come largely from those who care about it most, such as its maintainers. We measure the effect on one pair~$(j,b)$ in which a fraction~$\frc$ of the answers comes from maintainers of~$j$. Let~$F$ be the distribution function of honest answerers' $\hat w$ relative to the pair's target log-ratio, continuous and strictly increasing with~$F(0) = 1/2$.
+If volunteers choose what to answer about, then the answers about a project may come largely from those who care about it most, such as its maintainers. We first measure this on one pair~$(j,b)$ in which a fraction~$\frc$ of the answers comes from maintainers of~$j$. Let~$F$ now be the distribution function of honest answerers'~$\hat w$ relative to the pair's target log-ratio, continuous and strictly increasing with~$F(0) = 1/2$.
 
-\begin{theorem}[capture and recusal]\label{thm:capture}
+\begin{theorem}[capture]\label{thm:capture}
 Under nudges, the rest point of the pair, relative to its target log-ratio, is the solution~$x_{\frc}$ of $(1-\frc)\cdot F(x) + \frc\cdot F(x-\bias) = 1/2$. Moreover, $x_0 = 0$; $0 < x_{\frc} < \bias$ for~$0<\frc<1$; $x_1 = \bias$; and~$x_{\frc}$ increases with~$\frc$.
 \end{theorem}
 
-\begin{proof}[Proof sketch]
-An answer is ``more to~$j$'' with probability~$1 - H(x)$, where $H(x) = (1-\frc)F(x) + \frc F(x-\bias)$, so the expected move is zero exactly when~$H(x) = 1/2$. Since $F(-\bias) < 1/2 < F(\bias)$, we have $H(0) < 1/2 < H(\bias)$ for~$0<\frc<1$; and~$H$ decreases pointwise as~$\frc$ grows.
-\end{proof}
+So an open forum in which a project's volunteers are mostly its maintainers rests that project's share a factor of up to~$e^{\bias}$ above the community's view, and recusal from pairs that include one's own project sets~$\frc=0$. But a maintainer can also answer pairs that do not include her project. Since shares sum to one, an answer about a pair $(k,l)$ changes the share of every other project through the normalization.
 
-So nudges are capture-proof exactly when maintainers do not answer about their own projects. If, in an open forum, the volunteers for a project are mostly its maintainers, then~$\frc$ is close to~$1$ and the project's share rests a factor of up to~$e^{\bias}$ above the community's view. Recusal sets~$\frc=0$. Together with Theorem~\ref{thm:char}, this fixes the first two choices: nudges, answered by random non-maintainers.
+\begin{theorem}[indirect influence]\label{thm:indirect}
+Under nudges, an answer about a pair $(k,l)$ multiplies the share of every other project~$j$ by $1/(1+\Delta)$, where
+\[
+|\Delta| \le \left(e^{\step/2}-1\right)\cdot\max\left(\Split(k),\Split(l)\right).
+\]
+Moreover, if $\Split(k)\cdot e^{\step/2} < \Split(l)$, then an answer toward~$k$ gives $\Delta<0$: pushing toward the smaller project raises every other project's share.
+\end{theorem}
+
+An answer about a pair that includes~$j$ changes $j$'s share by a factor of about $e^{\step/2}$; an answer about another pair, by a factor that is smaller by the larger share of that pair. With 98 projects and a largest share of 3.3\%, recusal thus removes all but a thirtieth of a maintainer's influence on her own share. The remaining incentive has a definite direction, toward smaller projects, and it disappears if no maintainer is asked at all; Section~\ref{sec:sim} measures what such answers do. Together with Observation~\ref{obs:char} and Theorem~\ref{thm:bound}, this fixes the first two choices: nudges, answered by random members who are not maintainers of the pair's projects.
 
 \subsection{Which pairs are asked}\label{sec:which}
 
-By Theorem~\ref{thm:nudge}(c), when a target exists, the agenda does not change where the split rests, so it can be chosen for speed alone; and since flags only set the agenda, we can let anyone flag, maintainers included. We first ask how quickly a problem is found.
+When a target exists, the agenda does not change where the split rests (Observation~\ref{obs:nudge}(c)), so it can be chosen for speed alone; and since flags only set the agenda, we can let anyone flag, maintainers included. Two forces compete: problems should be found quickly, and attention should go where funding is at stake.
 
-\begin{theorem}[detection]\label{thm:detect}
+\begin{observation}[detection]\label{obs:detect}
 Suppose project~$j$ becomes far off target at time zero. Under uniform pairs with~$A$ answered questions a day, the first question involving~$j$ comes after~$m/(2A)$ days in expectation. If flags pick the questions and a flagged project is asked about at once, then it comes after~$1/\notice$ days in expectation. Hence flags find problems sooner if and only if $A < m\cdot\notice/2$.
-\end{theorem}
+\end{observation}
 
-\begin{proof}
-A uniform pair involves~$j$ with probability $(m-1)/\binom{m}{2} = 2/m$, so questions about~$j$ arrive at rate~$2A/m$. The inequality $1/\notice < m/(2A)$ is equivalent to $A < m\cdot\notice/2$.
-\end{proof}
-
-For the 98 projects of the round, if a problem is noticed within five days on average ($\notice = 0.2$), then flags find it sooner whenever there are fewer than 9.8 answers a day.
-
-Between problems, questions should still go somewhere. Suppose each project~$j$ is tracked against the rest of the fund by its own questions, at rate~$q_j$ with $\sum_j q_j = A$, each with its best step (Proposition~\ref{prop:track}); let~$\vol_j$ be the volatility of its target, and write~$\target(j)$ for its target share (we drop the time index).
+For the 98 projects of the round, if a problem is noticed within five days on average ($\notice = 0.2$), then flags find it sooner whenever there are fewer than 9.8 answers a day. Between problems, suppose each project~$j$ is tracked against the rest of the fund by its own questions, at rate~$q_j$ with $\sum_j q_j = A$, each with its best step; let~$\vol_j$ be the volatility of its target, and write~$\target(j)$ for its target share (we drop the time index).
 
 \begin{proposition}[attention by share]\label{prop:alloc}
 In the small-step approximation, misallocated funding per day is approximately proportional to $\sum_j \target(j)\cdot\sqrt{\vol_j}\cdot q_j^{-1/4}$, which, for a fixed total~$A$, is smallest when
@@ -253,30 +260,24 @@ q_j \propto \left(\target(j)\cdot\sqrt{\vol_j}\right)^{4/5}.
 
 If volatilities are similar, then questions should go roughly by share. In a check with 20 projects with Zipf-distributed shares and random volatilities, at 40 questions a day, the simulated misallocation was 6.49\% for uniform rates, 5.80\% for rates proportional to share, and 5.67\% for the optimal rates; the formula was within 3\% of each.
 
-Finally, once members have flagged a project, how much is one question about it worth? Consider a pair whose current log-ratio exceeds the target log-ratio by~$d$, and let~$F$ be, as in Section~\ref{sec:who}, the distribution function of honest answerers'~$\hat w$ relative to the target log-ratio.
+\begin{remark}\label{rem:gain}
+Flags also point where one question is worth most. If a pair's log-ratio exceeds its target log-ratio by $d$ with $|d|\ge\step$, then one honest nudge lowers the expected absolute error by $\step\cdot(2F(|d|)-1)$, which grows with~$|d|$.
+\end{remark}
 
-\begin{theorem}[value of one question]\label{thm:gain}
-If $|d| \ge \step$, then after one nudge from an honest answerer, the expected absolute error of the pair's log-ratio is $|d| - \step\cdot\left(2F(|d|) - 1\right)$.
-\end{theorem}
-
-\begin{proof}
-Say~$d>0$. With probability~$F(d)$, the answer is ``more to~$b$'' and the error becomes $d - \step \ge 0$; otherwise, it becomes~$d+\step$. The expectation is $d - \step\cdot(2F(d)-1)$.
-\end{proof}
-
-The gain $\step\cdot(2F(|d|)-1)$ grows with the error. Since the funding at stake in a pair scales with its shares, to first order a question should go where $\target(j)\cdot(2F(|d_j|)-1)$ is largest, where~$d_j$ is the log-ratio error of a question about~$j$: to large projects with large errors. Flags point at large errors, and shares at large projects. Table~\ref{tab:forced} collects the conclusions.
+Table~\ref{tab:forced} collects the conclusions.
 
 \begin{table}[t]
 \caption{Each choice of flag and sample is forced by a requirement or optimal for accuracy.}\label{tab:forced}
 \centering\small
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{1.45cm}>{\raggedright\arraybackslash}p{2.55cm}l@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{1.3cm}@{}}
 \toprule
 choice & instead of & because & result \\
 \midrule
-nudges & multipliers & forced by typing-proofness & Thm.~\ref{thm:char} \\
-recusal & volunteers & forced by capture-proofness & Thm.~\ref{thm:capture} \\
+nudges & multipliers & forced by typing-proofness, at no cost beyond the format & Obs.~\ref{obs:char}, Thm.~\ref{thm:bound} \\
+recusal & volunteers & forced by capture-proofness & Thms.~\ref{thm:capture}, \ref{thm:indirect} \\
 questions by share & uniform & nearly optimal & Prop.~\ref{prop:alloc} \\
-flagged first & share only & found sooner, larger gain & Thms.~\ref{thm:detect}, \ref{thm:gain} \\
-step $\propto 1/\sqrt{q}$ & fixed step & optimal step & Prop.~\ref{prop:track} \\
+flagged first & share only & problems found sooner & Obs.~\ref{obs:detect} \\
+step $\propto 1/\sqrt{q}$ & fixed step & attains the bound & Prop.~\ref{prop:track} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -287,48 +288,53 @@ step $\propto 1/\sqrt{q}$ & fixed step & optimal step & Prop.~\ref{prop:track} \
 The analysis treats each choice separately and partly in approximation. We now compare the complete mechanisms in one simulated world built from the round's public data.
 
 \paragraph{Setup.}
-The projects are the round's 98 repositories. The target comes from public pairwise comparisons of these repositories by six LLM-based juror personas, 41{,}418 comparisons in total~\cite{gasquez2025weights}: we fit Bradley--Terry scores~\cite{bradley1952rank} per persona, take the median, and scale it so that the largest project receives 3.3\% of the fund. The target's log-weights drift as a random walk with daily standard deviation 0.02. The AI follows the target with a small error on every project (standard deviation 0.15 in log terms) and a large one on 10\% of the projects, which it over- or under-funds by a factor of $e^{1.5}\approx 4.5$. There are 150 members; 50 of them maintain one project each, with~$\bias = 1$. A member's view is the target plus a personal deviation (standard deviation 0.5), and answers add noise (standard deviation 0.5); in the main runs, $\bel = 1$ and $\infl = 2.7$, close to the inflation in the trial run. Typed numbers are capped at 1024; in open forums, a maintainer types the cap with probability 0.15. Each day, each member looks at one project with probability 0.05 and flags it if it looks off by more than a factor of~$e^{0.7}$, at most once in 14 days per project; a maintainer's flag on her own project counts half. Invited members answer with probability 0.5 and at most three times a day; directions within 0.1 of the current log-ratio count as ``about right''. In open forums, members volunteer 0.02 answers a day, and maintainers 0.2 answers a day about their own project. Flag and sample sends half of the questions to flagged projects, with probability proportional to their net flags, and the rest by share; each answer about a project multiplies its flags by 0.7. Each run lasts 180 days, and we report misallocation over the second half. Steps and learning rates are tuned per mechanism and attention level on 4 runs and evaluated on 12 fresh runs; we report means with standard errors.
+The projects are the round's 98 repositories. The target comes from public pairwise comparisons of these repositories by six LLM-based juror personas, 41{,}418 comparisons in total~\cite{gasquez2025weights}: we fit Bradley--Terry scores~\cite{bradley1952rank} per persona, take the median, and scale it so that the largest project receives 3.3\% of the fund. The target's log-weights drift as a random walk with daily standard deviation 0.02. The AI follows the target with a small error on every project (standard deviation 0.15 in log terms) and a large one on 10\% of the projects, which it over- or under-funds by a factor of $e^{1.5}\approx 4.5$. There are 150 members; 50 of them maintain one project each, with~$\bias = 1$. A member's view is the target plus a personal deviation (standard deviation 0.5), and answers add noise (standard deviation 0.5); in the main runs, $\bel = 1$ and $\infl = 2.7$, close to the inflation in the trial run. Typed numbers are capped at 1024; in open forums, a maintainer types the cap with probability 0.15. Clipped multipliers move a log-ratio by at most $\lr$ times 1. Each day, each member looks at one project with probability 0.05 and flags it if it looks off by more than a factor of~$e^{0.7}$, at most once in 14 days per project; a maintainer's flag on her own project counts half. Invited members answer with probability 0.5 and at most three times a day; directions within 0.1 of the current log-ratio count as ``about right''. In open forums, members volunteer 0.02 answers a day, and maintainers 0.2 answers a day about their own project. Flag and sample sends half of the questions to flagged projects, with probability proportional to their net flags, and the rest by share; each answer about a project multiplies its flags by 0.7. Each run lasts 180 days, and we report misallocation over the second half. Steps and learning rates are tuned per mechanism and setting on 4 runs; we then evaluate on 40 fresh runs, the same 40 worlds for every mechanism, and report means with standard errors.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{frontier}
-\caption{Misallocated funding against attention, in the simulated round (12 runs, standard errors shown). Open forums use whatever attention volunteers give, about 12 answers a day.}\label{fig:frontier}
+\caption{Misallocated funding against attention, in the simulated round (40 runs, standard errors shown). Open forums use whatever attention volunteers give, about 12 answers a day.}\label{fig:frontier}
 \end{figure}
 
 \paragraph{Accuracy against attention.}
-Figure~\ref{fig:frontier} shows the frontier. Flag and sample misallocates the least at every attention level: 13.3\% at one answer a day, 9.7\% at five, 8.1\% at ten, and 4.9\% at forty, against 19.8\% for the AI alone. Share-weighted questions come close (10.2\% at five), and uniform pairs are much worse at low attention (18.3\% at one). The open forums are not on the frontier: at about 12 answers a day, open-forum nudges misallocate 15.2\%, and open-forum multipliers 20.8\%, more than the AI alone. Table~\ref{tab:equal} compares the mechanisms at equal attention and also reports \emph{capture}, the excess share of the maintained projects over their target share. Both open forums are captured, by 8.0 and 9.4 percentage points; with recusal, capture is within noise of zero. Share-weighted multipliers avoid capture but not exaggeration, and do no better than the AI.
+Figure~\ref{fig:frontier} shows the frontier. Flag and sample misallocates the least at every attention level: 13.3\% at one answer a day, 9.6\% at five, 8.0\% at ten, and 5.0\% at forty, against 17.6\% for the AI alone. Share-weighted questions come close: flags lower misallocation by a further 0.2--0.5 points, and, paired over the 40 worlds, the difference exceeds two standard errors at every level except one answer a day. Uniform pairs are much worse at low attention (16.3\% at one answer a day). The open forums are not on the frontier. Table~\ref{tab:equal} compares the mechanisms at equal attention and also reports \emph{capture}, the excess share of the maintained projects over their target share. Open forums are captured; with recusal, capture is within noise of zero. Multipliers, clipped or not, avoid capture when maintainers are recused but not exaggeration, and do no better than the AI.
 
 \begin{table}[t]
-\caption{Equal attention, about 12 answered questions a day: misallocated funding and capture, in \% of the fund (standard errors at most 1.4).}\label{tab:equal}
+\caption{Equal attention, about 12 answered questions a day: misallocated funding and capture, in \% of the fund (40 runs; standard errors at most 0.8).}\label{tab:equal}
 \centering\small
 \begin{tabular}{@{}lrr@{}}
 \toprule
 mechanism & misallocated & captured \\
 \midrule
-AI alone & 19.8 & -- \\
-open forum, multipliers & 20.8 & 9.4 \\
-open forum, nudges & 15.2 & 8.0 \\
-share-weighted, multipliers & 20.8 & $\approx 0$ \\
+AI alone & 17.6 & -- \\
+open forum, multipliers & 19.7 & 9.7 \\
+open forum, clipped multipliers & 16.9 & 1.7 \\
+open forum, nudges & 14.6 & 8.0 \\
+share-weighted, multipliers & 19.8 & $\approx 0$ \\
+share-weighted, clipped multipliers & 17.6 & $\approx 0$ \\
 share-weighted, nudges & 8.0 & $\approx 0$ \\
 flag and sample & \textbf{7.5} & $\approx 0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Other worlds.}
-We repeated the frontier in two more worlds: one with a more skewed target (the largest project receives 15\%), and one in which the AI is badly wrong on only 3\% of the projects. In both, flag and sample again misallocates the least at every attention level, and it beats the AI alone at every attention level, also in the second world, where the AI alone misallocates only 12.6\%.
+\paragraph{The AI's errors.}
+Flags matter more when the AI is badly wrong. When the AI's large errors are a factor of $e^{0.75}\approx 2.1$, $e^{1.5}$, or $e^{2.25}\approx 9.5$, the AI alone misallocates 10.0\%, 17.6\%, and 30.7\%; at five answers a day, share-weighted questions reach 7.7\%, 10.0\%, and 12.0\%, and flag and sample 7.7\%, 9.6\%, and 11.1\%. We also repeated the frontier in two more worlds: one with a more skewed target (the largest project receives 15\%), and one in which the AI is badly wrong on only 3\% of the projects. In both, flag and sample again misallocates the least at every attention level, by 0.1--0.8 points, and beats the AI alone at every attention level, also in the second world, where the AI alone misallocates only 10.5\%.
+
+\paragraph{Strategic maintainers.}
+Theorem~\ref{thm:indirect} leaves a recused maintainer a small incentive: to push other pairs toward their smaller project. If every maintainer does so on every pair she is asked about, then, at twelve answers a day, flag and sample misallocates 9.7\% instead of 7.5\%, but capture stays within noise of zero ($-0.1\pm 0.2$ points); the answers hurt accuracy rather than help the maintainers. Not inviting maintainers at all removes the effect at almost no cost (7.6\%).
 
 \paragraph{Belief exaggeration.}
-Nudges ignore typing exaggeration but not belief exaggeration (Theorem~\ref{thm:nudge}(b)). We do not know how the inflation of 2.7 splits between the two, so we varied~$\bel$ from 1 to 2.7, with typing carrying the rest (Figure~\ref{fig:sweep}). As~$\bel$ grows, mechanisms with nudges lose accuracy, because they rest at exaggerated ratios. Up to~$\bel = 2$, flag and sample at five answers a day still beats the AI alone clearly (15.9\% against 19.8\%), and at~$\bel = 2.7$ only slightly (18.7\%). At~$\bel = 2.7$, more attention hurts: at twelve answers a day, the split moves faster toward the exaggerated rest point, and flag and sample misallocates 21.1\%.
+Nudges ignore typing exaggeration but not belief exaggeration (Observation~\ref{obs:nudge}(b)). We do not know how the inflation of 2.7 splits between the two, so we varied~$\bel$ from 1 to 2.7, with typing carrying the rest (Figure~\ref{fig:sweep}). As~$\bel$ grows, mechanisms with nudges lose accuracy, because they rest at exaggerated ratios. Up to~$\bel = 2$, flag and sample at five answers a day still beats the AI alone clearly (14.7\% against 17.6\%), and at~$\bel = 2.7$ they are about equal (17.1\%). With strong belief exaggeration, more attention hurts, because the split moves faster toward the exaggerated rest point: at~$\bel = 2.7$ and twelve answers a day, flag and sample misallocates 20.6\%.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{sweep}
-\caption{Misallocated funding as belief exaggeration grows, with typing exaggeration carrying the rest of 2.7 (12 runs each).}\label{fig:sweep}
+\caption{Misallocated funding as belief exaggeration grows, with typing exaggeration carrying the rest of 2.7 (40 runs each).}\label{fig:sweep}
 \end{figure}
 
 \paragraph{Tuning.}
-Two more sweeps support the analysis. Weighting pairs by share to the power 0.5, 0.75, or 1 gives about the same misallocation (for share-weighted questions at 12 answers a day: 7.8\%, 8.0\%, and 8.0\%, against 8.6\% for uniform), in line with the flat optimum of Proposition~\ref{prop:alloc}. Sending a fraction of the questions to flagged projects helps up to about half, after which the curve is flat: at 12 answers a day, 8.2\% with no flags, 7.5\% with half, and 7.3--7.5\% with more.
+Two more sweeps, at twelve answers a day, support the analysis. Weighting pairs by share to the power 0.5, 0.75, or 1 gives about the same misallocation (8.1\%, 8.1\%, and 8.0\%, against 8.5\% for uniform), in line with the flat optimum of Proposition~\ref{prop:alloc}. Sending a fraction of the questions to flagged projects helps up to about half, after which the curve is flat: 7.9\% with no flags, 7.5\% with half, and 7.4\% with three quarters or more.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related work}\label{sec:related}
@@ -340,7 +346,7 @@ The idea that AI does the heavy work while humans supply a small amount of high-
 The closest mechanism is Iterative Local Voting~\cite{garg2019ilv}: voters are sampled one at a time and move the current solution within a small neighborhood whose radius shrinks over time; with box-shaped neighborhoods and separable utilities, it converges to coordinate-wise medians. Nudges are a pairwise version of this idea. Our target moves, so the step should not shrink to zero but balance drift against noise (Proposition~\ref{prop:track}); and we add maintainers, the agenda, and an axiomatic characterization of the update.
 
 \paragraph{Strategyproof aggregation.}
-The median is strategyproof for single-peaked preferences~\cite{moulin1980strategy}, and moving phantom mechanisms aggregate full budget proposals truthfully~\cite{freeman2021budget}; the geometric median is only asymptotically approximately strategyproof~\cite{elmhamdi2023median}. Nudges rest at medians (Theorem~\ref{thm:nudge}(b)), which is one way to see their robustness; but our members answer occasional pairwise questions rather than submit full proposals, and robustness concerns exaggeration and capture rather than a single strategic report.
+The median is strategyproof for single-peaked preferences~\cite{moulin1980strategy}, and moving phantom mechanisms aggregate full budget proposals truthfully~\cite{freeman2021budget}; the geometric median is only asymptotically approximately strategyproof~\cite{elmhamdi2023median}. Nudges rest at medians (Observation~\ref{obs:nudge}(b)), which is one way to see their robustness; but our members answer occasional pairwise questions rather than submit full proposals, and robustness concerns exaggeration and capture rather than a single strategic report.
 
 \paragraph{Stochastic approximation.}
 A nudge is a sign-based stochastic approximation step~\cite{robbins1951sa} toward the root of the answer probability, that is, toward a median; adapting the step to the observed signs goes back to Kesten~\cite{kesten1958accelerated}. Proposition~\ref{prop:track} is the drift-tracking counterpart of choosing the step size.
@@ -351,7 +357,7 @@ A nudge is a sign-based stochastic approximation step~\cite{robbins1951sa} towar
 We asked which mechanism a community should use to steer an AI that continuously splits a fund, when the community's attention is scarce. In our model, the requirements and the objective determine the answer, and our advice for a round like the one we studied is:
 \begin{enumerate}[leftmargin=*,nosep]
 \item let anyone flag a project as over- or under-funded, and ask about flagged projects first, and otherwise by share;
-\item ask random members, never about projects they maintain;
+\item ask random members, never about projects they maintain, and, where enough other members exist, no maintainers at all;
 \item ask for directions only, and move the ratio by a small factor per answer (in our simulations, 5--10\% at five or more answers a day), smaller as attention grows;
 \item check first that members' beliefs are not strongly exaggerated.
 \end{enumerate}
@@ -364,29 +370,35 @@ Several directions remain. Belief exaggeration is the main threat to any mechani
 \onecolumn
 \section{Proofs}\label{app:proofs}
 
-Lean names refer to the file \texttt{SteerProofs/Basic.lean} in the supplementary material, which builds with Lean~4 and Mathlib and contains no unproved step.
+Lean names refer to the files \texttt{Basic.lean} and \texttt{Info.lean} in the supplementary material, which build with Lean~4 and Mathlib and contain no unproved step.
 
-\paragraph{Theorem~\ref{thm:nudge}.}
+\paragraph{Observation~\ref{obs:nudge}.}
 (a) A nudge changes~$g$ by $\step\cdot\dir$ with $\dir\in\{-1,0,1\}$; by induction, $k$ nudges change it by at most $k\cdot\step$ (Lean: \texttt{nudge\_bounded}, \texttt{nudges\_bounded}).
-(b) Let~$M$ be the distribution function of the answerers' $\hat w$. At current log-ratio~$g$, the answer is ``more to~$b$'' with probability~$M(g)$ and ``more to~$a$'' with probability~$1-M(g)$ (ties have probability zero), so the expected move is $\step\cdot(1-2M(g))$, which is zero exactly when~$M(g) = 1/2$ (Lean: \texttt{rest\_iff\_median}). If the wanted log-ratios on reflection are symmetric around~$\mu$ and the noise is symmetric around zero and independent, then $\hat w = \bel\cdot w + \varepsilon$ is symmetric around $\bel\cdot\mu$, so $\bel\cdot\mu$ is a median (Lean: \texttt{belief\_scales} for the scaling). Nudges use only the direction, so~$\infl$ does not enter. For multipliers, the expected move is $\lr\cdot(\mathbb{E}[r] - g)$, zero at $g = \mathbb{E}[r] = \infl\cdot\bel\cdot\mu$.
-(c) By (b), every pair's expected move is zero when its log-ratio equals the target log-ratio, so the target is a rest point of every pair whatever the rates. More strongly, since $\frac{d}{dy}\mathbb{E}|y - W| = 2\Pr[W<y]-1$, the expected motion of the log-weights is a gradient flow of $\sum_{(a,b)} q_{ab}\,\mathbb{E}\left|x_a - x_b - W_{ab}\right|$, where~$q_{ab}$ is the rate of pair~$(a,b)$ and~$W_{ab}$ its answerers' wanted log-ratio; the target minimizes every term, and hence the weighted sum, for every choice of rates (Lean: \texttt{agenda\_free}).
+(b) Let~$M$ be the distribution function of the answerers'~$\hat w$. At current log-ratio~$g$, the answer is ``more to~$b$'' with probability~$M(g)$ and ``more to~$a$'' with probability~$1-M(g)$ (ties have probability zero), so the expected move is $\step\cdot(1-2M(g))$, which is zero exactly when~$M(g) = 1/2$ (Lean: \texttt{rest\_iff\_median}). If the wanted log-ratios on reflection are symmetric around~$\mu$ and the noise is symmetric around zero and independent, then $\hat w = \bel\cdot w + \varepsilon$ is symmetric around $\bel\cdot\mu$, so $\bel\cdot\mu$ is a median (Lean: \texttt{belief\_scales} for the scaling). Nudges use only the direction, so~$\infl$ does not enter. For multipliers, the expected move is $\lr\cdot(\mathbb{E}[r] - g)$, zero at $g = \mathbb{E}[r] = \infl\cdot\bel\cdot\mu$; for clipped multipliers, the expected move $\lr\cdot\mathbb{E}[\mathrm{clip}(r-g)]$ is zero at the center of symmetry of~$r$.
+(c) By (b), every pair's expected move is zero when its log-ratio equals the target log-ratio. More strongly, since $\frac{d}{dy}\mathbb{E}|y - W| = 2\Pr[W<y]-1$, the expected motion of the log-weights is a gradient flow of $\sum_{(a,b)} q_{ab}\,\mathbb{E}\left|x_a - x_b - W_{ab}\right|$, where~$q_{ab}$ is the rate of pair~$(a,b)$ and~$W_{ab}$ its answerers' wanted log-ratio; the target minimizes every term, and hence the weighted sum, for every choice of rates (Lean: \texttt{agenda\_free}).
 
-\paragraph{Theorem~\ref{thm:char}.}
-Lean: \texttt{characterization}, with the four properties defined as \texttt{Responsive}, \texttt{TypingProof}, \texttt{LevelFree}, and \texttt{Neutral}. The proof is the one in the main text: level-freeness with~$c = g$ gives $U(g,r) = g + U(0,r-g)$; typing-proofness with the scaling $\tau(z) = z\cdot y/x$ gives $U(0,x) = U(0,y)$ for~$x,y>0$; responsiveness gives $U(0,1) \ge 0$; neutrality with~$g=r=0$ gives~$U(0,0)=0$, and with~$r = -x$ gives $U(0,-x) = -U(0,x)$.
+\paragraph{Observation~\ref{obs:char}.}
+Lean: \texttt{characterization}. Nudges have the four properties. Conversely, level-freeness with~$c = g$ gives $U(g,r) = g + U(0,r-g)$; typing-proofness with the scaling $\tau(z) = z\cdot y/x$ gives $U(0,x) = U(0,y)$ for~$x,y>0$; call this value~$\step$, which is nonnegative by responsiveness; neutrality with~$g=r=0$ gives~$U(0,0)=0$, and with~$r = -x$ gives $U(0,-x) = -U(0,x)$.
+
+\paragraph{Theorem~\ref{thm:bound}.}
+Let~$J_k$ be the posterior information about~$\mu$ at the time of the $k$-th answer. For a random-walk state with Gaussian increments of variance~$Q$, the posterior Cram\'er--Rao recursion~\cite{tichavsky1998pcrb} is $J_{k+1} = (Q + J_k^{-1})^{-1} + \mathbb{E}[I_{k+1}]$, where $I_{k+1}$ is the Fisher information of the $(k{+}1)$-st answer about the state, and the mean-square error of any estimator is at least $1/J_k$. The recursion is derived from the factorization of the joint density of states and answers; when the comparison point is chosen from past answers, the factorization holds with the density of the answer given the state and the past answers, and the measurement term is the expected conditional information. A direction answer with comparison point at distance~$y$ from the median is a Bernoulli variable with success probability $1-F(y)$, whose information about the state is $F'(y)^2/(F(y)(1-F(y)))$; by assumption this is at most $I = 4\cdot\dens^2$ (Lean: \texttt{info\_at\_median} for the value at the median, \texttt{laplace\_info\_max} for Laplace noise; for normal and logistic noise, we checked the maximum numerically). Hence $J_{k+1} \le f(J_k)$ with $f(J) = (Q+1/J)^{-1} + I$. The map~$f$ is increasing, and $1/P_q$ is its fixed point, where $P_q$ is the positive root of $I P^2 + IQ P - Q = 0$; by induction, $J_k \le 1/P_q$ for all~$k$ (Lean: \texttt{infoStep\_mono}, \texttt{fixed\_point}, \texttt{info\_bound}). The bounds $\sqrt{Q/I} - Q/2 \le P_q \le \sqrt{Q/I}$ follow from the quadratic (Lean: \texttt{statErr\_ge}, \texttt{statErr\_le}), and $\sqrt{Q/I} = \vol/(2\cdot\dens\cdot\sqrt q)$ for $Q = \vol^2/q$ and $I = 4\cdot\dens^2$ (Lean: \texttt{leading\_term}). For number answers with normal noise, the information of one answer is $1/\sd^2$, and the recursion is that of the Kalman filter, which attains it~\cite{tichavsky1998pcrb}.
 
 \paragraph{Proposition~\ref{prop:track}.}
-Let $y_t = g_t - \mu_t$. Between questions, $y$ moves by the Brownian drift of~$\mu$, with variance~$\vol^2$ per day. A question arrives at rate~$q$ and moves~$y$ by~$+\step$ with probability $1-F_\varepsilon(y)$ and by~$-\step$ otherwise, where $F_\varepsilon$ is the noise distribution; the expected move per day is $q\cdot\step\cdot(1-2F_\varepsilon(y)) \approx -2\cdot q\cdot\step\cdot\dens\cdot y$ for small~$y$, and the variance per day is $q\cdot\step^2 + \vol^2$. In the diffusion approximation, $y$ is an Ornstein--Uhlenbeck process with mean reversion $\kappa = 2\cdot q\cdot\step\cdot\dens$ and variance rate $\sigma^2 = q\cdot\step^2+\vol^2$, whose stationary variance is $\sigma^2/(2\kappa)$, the formula in the proposition. By the inequality of arithmetic and geometric means, $q\cdot\step^2 + \vol^2 \ge 2\cdot\sqrt q\cdot\vol\cdot\step$, with equality at $\step = \vol/\sqrt q$ (Lean: \texttt{best\_step}). For multipliers, the mean reversion is~$q\cdot\lr$ and the variance rate $q\cdot\lr^2\cdot\sd^2 + \vol^2$; the same argument gives the best value $\vol\cdot\sd/\sqrt q$ at $\lr = \vol/(\sd\cdot\sqrt q)$. For normal noise, $\dens = 1/(\sd\sqrt{2\pi})$ and the ratio $1/(2\cdot\dens\cdot\sd)$ is $\sqrt{\pi/2}$; for Laplace noise with scale~$s$, $\dens = 1/(2s)$ and $\sd = s\sqrt2$, and the ratio is~$1/\sqrt 2$. The numerical check simulates the exact jump process; the best step on the grid $\{0.25, 0.5, 1, 2, 4\}\cdot\vol/\sqrt q$ was $\vol/\sqrt q$ for $q \in \{1,4,16,64\}$, and the simulated error exceeded the formula by 2--4\%.
+Let $y_t = g_t - \mu_t$. Between questions, $y$ moves by the drift of~$\mu$, with variance~$\vol^2$ per day. A question moves~$y$ by~$+\step$ with probability $1-F(y)$ and by~$-\step$ otherwise; at rate~$q$, the expected move per day is $q\cdot\step\cdot(1-2F(y)) \approx -2\cdot q\cdot\step\cdot\dens\cdot y$ for small~$y$, and the variance per day is $q\cdot\step^2 + \vol^2$. In the diffusion approximation, $y$ is an Ornstein--Uhlenbeck process with mean reversion $\kappa = 2\cdot q\cdot\step\cdot\dens$ and variance rate $\sigma^2 = q\cdot\step^2+\vol^2$, whose stationary variance is $\sigma^2/(2\kappa)$, the formula in the proposition. By the inequality of arithmetic and geometric means, $q\cdot\step^2 + \vol^2 \ge 2\cdot\sqrt q\cdot\vol\cdot\step$, with equality at $\step = \vol/\sqrt q$ (Lean: \texttt{best\_step}). For multipliers, the mean reversion is~$q\cdot\lr$ and the variance rate $q\cdot\lr^2\cdot\sd^2 + \vol^2$; the same argument gives the best value $\vol\cdot\sd/\sqrt q$ at $\lr = \vol/(\sd\cdot\sqrt q)$. For normal noise, $\dens = 1/(\sd\sqrt{2\pi})$, so $1/(2\cdot\dens\cdot\sd) = \sqrt{\pi/2}$; for Laplace noise with scale~$s$, $\dens = 1/(2s)$ and $\sd = s\sqrt2$, so it is~$1/\sqrt 2$. The numerical check simulates the exact jump process with questions arriving at rate~$q$; the best step on the grid $\{0.25, 0.5, 1, 2, 4\}\cdot\vol/\sqrt q$ was $\vol/\sqrt q$ for $q \in \{1,4,16,64\}$, and the simulated error exceeded the leading term by 2--4\%.
 
 \paragraph{Theorem~\ref{thm:capture}.}
-Let $H_{\frc}(x) = (1-\frc)F(x) + \frc F(x-\bias)$. The answer is ``more to~$b$'' with probability $H_{\frc}(x)$, so by the argument of Theorem~\ref{thm:nudge}(b), the rest point solves $H_{\frc}(x) = 1/2$; $H_{\frc}$ is continuous and strictly increasing, so the solution is unique when it exists. For~$\frc = 0$, the solution is~$0$ (Lean: \texttt{recusal\_rest}). If~$\frc>0$ and~$x\le 0$, then $F(x)\le 1/2$ and $F(x-\bias)<1/2$, so $H_{\frc}(x)<1/2$; hence $x_{\frc} > 0$ (Lean: \texttt{capture}). If~$\frc<1$ and $x \ge \bias$, then~$F(x) > 1/2$ and $F(x-\bias) \ge 1/2$, so $H_{\frc}(x) > 1/2$; hence $x_{\frc} < \bias$ (Lean: \texttt{capture\_lt\_bias}). For~$\frc = 1$, $F(x - \bias) = 1/2$ gives~$x = \bias$. If $\frc < \frc'$ and $x_{\frc'} \le x_{\frc}$, then $H_{\frc'}(x_{\frc'}) \le H_{\frc'}(x_{\frc}) = H_{\frc}(x_{\frc}) + (\frc'-\frc)(F(x_{\frc}-\bias) - F(x_{\frc})) < 1/2$, a contradiction (Lean: \texttt{capture\_mono}).
+Let $H_{\frc}(x) = (1-\frc)F(x) + \frc F(x-\bias)$. The answer is ``more to~$b$'' with probability $H_{\frc}(x)$, so the rest point solves $H_{\frc}(x) = 1/2$; $H_{\frc}$ is continuous and strictly increasing with limits $0$ and~$1$, so the solution exists and is unique. For~$\frc = 0$, it is~$0$ (Lean: \texttt{recusal\_rest}). If~$\frc>0$ and~$x\le 0$, then $F(x)\le 1/2$ and $F(x-\bias)<1/2$, so $H_{\frc}(x)<1/2$; hence $x_{\frc} > 0$ (Lean: \texttt{capture}). If~$\frc<1$ and $x \ge \bias$, then~$F(x) > 1/2$ and $F(x-\bias) \ge 1/2$, so $H_{\frc}(x) > 1/2$; hence $x_{\frc} < \bias$ (Lean: \texttt{capture\_lt\_bias}). For~$\frc = 1$, $F(x - \bias) = 1/2$ gives~$x = \bias$. If $\frc < \frc'$ and $x_{\frc'} \le x_{\frc}$, then $H_{\frc'}(x_{\frc'}) \le H_{\frc'}(x_{\frc}) = H_{\frc}(x_{\frc}) + (\frc'-\frc)(F(x_{\frc}-\bias) - F(x_{\frc})) < 1/2$, a contradiction (Lean: \texttt{capture\_mono}).
 
-\paragraph{Theorem~\ref{thm:detect}.}
+\paragraph{Theorem~\ref{thm:indirect}.}
+Write shares as $\Split(i) = e^{x_i}/Z$ with $Z = \sum_i e^{x_i}$. A nudge toward~$k$ adds $a = \step/2$ to~$x_k$ and subtracts it from~$x_l$, so the new normalizer is $Z' = Z\cdot(1+\Delta)$ with $\Delta = \Split(k)(e^{a}-1) + \Split(l)(e^{-a}-1)$, and every other share is divided by $1+\Delta$. Since $0 \le 1-e^{-a} \le e^{a}-1$, both terms have absolute value at most $(e^{a}-1)\max(\Split(k),\Split(l))$ and opposite signs, which gives the bound (Lean: \texttt{indirect\_bound}); a nudge toward~$l$ is the same with $k$ and~$l$ swapped. Moreover, $\Delta = (1-e^{-a})(\Split(k)e^{a} - \Split(l))$, which is negative when $\Split(k)e^{a} < \Split(l)$ (Lean: \texttt{push\_small\_helps}).
+
+\paragraph{Observation~\ref{obs:detect}.}
 Lean: \texttt{pair\_prob} for $(m-1)/\binom m2 = 2/m$, and \texttt{flags\_sooner} for the equivalence. Questions form a Poisson process of rate~$A$, and each involves~$j$ independently with probability~$2/m$, so questions about~$j$ form a Poisson process of rate~$2A/m$, whose first arrival has mean~$m/(2A)$.
 
 \paragraph{Proposition~\ref{prop:alloc}.}
 For small errors, $\tfrac12\sum_j|\Split(j)-\target(j)| \approx \tfrac12\sum_j \target(j)\cdot|e_j|$, where~$e_j$ is project~$j$'s log error. For a normally distributed error, $\mathbb{E}|e_j| = \sqrt{2/\pi}\cdot\sqrt{\mathbb{E}e_j^2}$, and by Proposition~\ref{prop:track} at the best step, $\mathbb{E}e_j^2 = \vol_j/(2\cdot\dens\cdot\sqrt{q_j})$. So misallocation per day is proportional to $\sum_j c_j\cdot q_j^{-1/4}$ with $c_j = \target(j)\cdot\sqrt{\vol_j}$. Write $q_j = u_j^4$. If~$v$ satisfies $c_j = 4\lambda v_j^5$ for some~$\lambda>0$ and $\sum_j v_j^4 = \sum_j u_j^4$, then $\sum_j c_j/v_j \le \sum_j c_j/u_j$ (Lean: \texttt{best\_allocation}, via the tangent-line inequality $5v^4u - u^5 \le 4v^5$ for~$u,v>0$). Hence the optimal rates are $q_j = v_j^4 \propto c_j^{4/5}$. The numerical check uses 20 projects with shares proportional to~$1/j^{1.1}$, volatilities uniform in $[0.01, 0.09]$, normal noise with~$\sd = 0.5$, and~$A = 40$; each project is simulated as a single tracked log-ratio.
 
-\paragraph{Theorem~\ref{thm:gain}.}
-Lean: \texttt{one\_question\_gain} for the identity $p|e-\step| + (1-p)|e+\step| = |e| - \step(2p-1)$ when $e\ge\step\ge 0$, and \texttt{gain\_monotone} for the monotonicity of the gain in~$p = F(|d|)$.
+\paragraph{Remark~\ref{rem:gain}.}
+Lean: \texttt{one\_question\_gain} for the identity $p|e-\step| + (1-p)|e+\step| = |e| - \step(2p-1)$ when $e\ge\step\ge 0$, with $p = F(|d|)$, and \texttt{gain\_monotone} for the monotonicity in~$p$.
 
 \end{document}
