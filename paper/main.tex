@@ -1,6 +1,6 @@
 %%% Steering a Living Allocator with Scarce Attention
-%%% ECAI format. For submission, switch to \documentclass[doubleblind]{ecai}.
-\documentclass{ecai}
+%%% ECAI format, anonymous (doubleblind).
+\documentclass[doubleblind]{ecai}
 
 \usepackage{latexsym}
 \usepackage{amssymb}
@@ -51,7 +51,7 @@
 \address[A]{Ben-Gurion University of the Negev}
 
 \begin{abstract}
-An AI system that continuously splits a fund among many projects will sometimes be wrong for a long time, and the community it serves has little attention to spare. We ask which mechanism such a community should use to keep the split on course. We model a fund that flows continuously, an AI that sets the split, and members who occasionally notice problems and answer occasional questions comparing two projects. We state what a good mechanism should achieve: accuracy for the attention it uses, bounded influence of each answer, robustness to exaggerated numbers, and robustness to capture by the maintainers of projects. We then compare natural mechanisms. Each requirement forces a design choice: answers should be directions rather than numbers, maintainers should not answer about their own projects, and questions should go first where members report problems and otherwise by funding share. In simulations calibrated to a recent Ethereum funding round, this mechanism halves the AI's misallocation at five answers a day.
+An AI system that continuously splits a fund among many projects will sometimes be wrong for a long time, and the community it serves has little attention to spare. We ask which mechanism such a community should use to keep the split on course. We model a fund that flows continuously, an AI that sets the split, and members who now and then notice problems and answer questions comparing two projects. We state what a good mechanism should achieve: accuracy for the attention it uses, bounded influence of each answer, robustness to exaggerated numbers, and robustness to capture by the maintainers of projects. We then compare natural mechanisms. Each requirement forces a design choice: answers should be directions rather than numbers, maintainers should not answer about their own projects, and questions should go first where members report problems and otherwise by funding share. In simulations calibrated to a recent Ethereum funding round, this mechanism halves the AI's misallocation at five answers a day.
 \end{abstract}
 
 \end{frontmatter}
@@ -61,7 +61,7 @@ An AI system that continuously splits a fund among many projects will sometimes 
 
 Consider an AI system that keeps running: a recommender that decides what people see, a scheduler that assigns resources, an allocator that splits a budget. Such a system can be right most of the time and badly wrong some of the time, possibly for a long time and in places nobody looks at. The people it serves can correct it, but their attention is scarce. This raises a design question: through which mechanism should a community steer a system that never stops?
 
-We study this question for one concrete kind of system, a \emph{living allocator}: an AI that continuously splits a stream of funding among projects. The case we have in mind is Deep Funding, a mechanism for funding open-source dependencies of Ethereum in which AI models and markets propose how much credit each repository deserves, and human jurors spot-check the proposals by comparing pairs of repositories~\cite{buterin2025steering,gg24round}. In the round of Gitcoin Grants~24, \$350{,}000 are allocated among 98 repositories in this way, and jurors answer how many times more impactful one repository is than another~\cite{gg24round}. The round's experience shows the problems we address. Attention is scarce: the round page reports about 500 evaluations from about 50 evaluators~\cite{gg24round}, and the organizer of the juror data collection concludes that ``the primary constraint was motivation''~\cite{niemerg2026verdict}. Numbers are exaggerated: in the trial run, the jurors' median multiplier was 5 while the reconciled ratio was about 1.8, and a single juror's answer that one repository is 999 times more valuable than another left that repository with roughly a quarter of all funding~\cite{niemerg2026verdict}. Answers are noisy: jurors disagreed about which project should rank higher 40\% of the time~\cite{niemerg2026verdict}. And an analysis of the trial calls for research into continuous funding in which juror votes are needed only marginally~\cite{kronovet2025jury}.
+We study this question for one concrete kind of system, a \emph{living allocator}: an AI that continuously splits a stream of funding among projects. The case we have in mind is Deep Funding, a mechanism for funding open-source dependencies of Ethereum in which AI models and markets propose how much credit each repository deserves, and human jurors spot-check the proposals by comparing pairs of repositories~\cite{buterin2025steering,gg24round}. In the round of Gitcoin Grants~24, \$350{,}000 is allocated among 98 repositories in this way, and jurors answer how many times more impactful one repository is than another~\cite{gg24round}. Deep Funding's experience so far shows the problems we address. Attention is scarce: the round page reports about 500 evaluations from about 50 evaluators~\cite{gg24round}, and the team that built the round's tool for collecting juror answers reports that ``the primary constraint was motivation''~\cite{niemerg2026verdict}. Numbers are exaggerated: in the trial run, the jurors' median multiplier was 5 while the reconciled ratio was about 1.8, and a single juror's answer that one repository is 999 times more valuable than another left that repository with roughly a quarter of all funding~\cite{niemerg2026verdict}. Answers are noisy: in the trial run, jurors disagreed about which project should rank higher 40\% of the time~\cite{niemerg2026verdict}. And an analysis of the trial calls for research into continuous funding in which juror votes are needed only marginally~\cite{kronovet2025jury}.
 
 We follow the classical route of computational social choice. Section~\ref{sec:model} defines a model: a fund that flows continuously, an AI that sets the split, and members who notice problems now and then and can be asked to compare two projects. Section~\ref{sec:want} states what we want from a mechanism. Section~\ref{sec:mech} describes the natural candidates as combinations of three choices: which pairs are asked about, who answers, and what an answer does. Section~\ref{sec:analysis} analyzes them, and Section~\ref{sec:sim} compares them in simulations built from the round's public data.
 
@@ -83,13 +83,21 @@ where the corrections~$\corr_t$ start at zero and change only through the mechan
 There are~$n$ members. Member~$i$ has a \emph{view} $\view_{i,t}$, a split with positive entries: the split she would want on reflection. Her wanted log-ratio for projects~$a,b$ is $w_{i,t}(a,b) = \log(\view_{i,t}(a)/\view_{i,t}(b))$. Some members \emph{maintain} a project. Our benchmark is the median member, pair by pair.
 
 \begin{definition}[target]
-A split~$\target_t$ is the \emph{target} if, for every pair of projects~$a,b$, its log-ratio $\log(\target_t(a)/\target_t(b))$ is the median of $w_{i,t}(a,b)$ over the members.
+A split~$\target_t$ is the \emph{target} if, for every pair of projects~$a,b$, its log-ratio $\log(\target_t(a)/\target_t(b))$ is a median of $w_{i,t}(a,b)$ over the members.
 \end{definition}
 
-We assume that a target exists at all times. This holds, for example, when each member's log view is a common vector plus a personal deviation and the deviations are distributed symmetrically around zero; this is the case in our simulations. Views, and hence the target, may change over time.
+We assume that a target exists at all times; views, and hence the target, may change over time.
+
+\begin{remark}
+A target exists, for example, when each member's log view is a common vector plus a personal deviation, and the deviations are distributed symmetrically around zero; this is the case in our simulations.
+\end{remark}
 
 \paragraph{Noticing.}
-Members look at the split now and then, at no cost, for example while using the projects. If a project's split is far from the target, then some member notices it after a random time; we model this time as exponential with rate~$\notice$ per day. Noticing is part of the world; whether members can report what they notice is a design decision of the mechanism.
+Members look at the split now and then, at no cost, for example while using the projects. If a project's split is far from the target, then some member notices it after a random time, exponential with rate~$\notice$ per day.
+
+\begin{remark}
+Noticing is part of the world; whether members can report what they notice is a design decision of the mechanism (Section~\ref{sec:mech}).
+\end{remark}
 
 \paragraph{Questions and answers.}
 A \emph{question} shows a member two projects~$a,b$ and their current amounts. Her answer is based on her wanted log-ratio in the moment,
@@ -101,7 +109,9 @@ where $\varepsilon$ is noise, independent across answers and symmetric around ze
 \item a \emph{direction}: ``more to~$a$'' if~$\hat w$ exceeds the current log-ratio~$g$, ``more to~$b$'' if it is below~$g$, and ``about right'' otherwise;
 \item a \emph{number}: how many times more~$a$ deserves than~$b$, which in log terms is $\infl\cdot\hat w$, where $\infl \ge 1$ is \emph{typing exaggeration}.
 \end{itemize}
-In the trial run of the round, typed multipliers were inflated by a factor of about 2.8 relative to the reconciled ratios~\cite{niemerg2026verdict}; the model splits such inflation into a part in the beliefs ($\bel$) and a part in the typing ($\infl$).
+\begin{remark}
+In Deep Funding's trial run, typed multipliers were inflated by a factor of about 2.8 relative to the reconciled ratios~\cite{niemerg2026verdict}. The model splits such inflation into a part in the beliefs ($\bel$) and a part in the typing ($\infl$), since the two affect mechanisms differently (Section~\ref{sec:analysis}).
+\end{remark}
 
 \paragraph{Attention and the objective.}
 \emph{Attention} is the number of answered questions per day; noticing costs no attention. The objective is little \emph{misallocated funding},
@@ -121,7 +131,7 @@ We want a mechanism with the following properties.
 \item \emph{Typing-proofness}: the outcome does not depend on how members turn wanted ratios into numbers.
 \item \emph{Capture-proofness}: maintainers cannot move the split in favor of their projects.
 \end{enumerate}
-Accuracy and attention conflict, so we compare mechanisms at equal attention and look for those on the frontier. Requirements (R3)--(R5) come from the experience described in the introduction: one extreme answer moved a quarter of the funding, typed numbers were inflated about threefold, and a natural way to raise participation is to involve the projects' own people~\cite{niemerg2026verdict}. Section~\ref{sec:analysis} makes (R4) and (R5) precise.
+Accuracy and attention conflict, so we compare mechanisms at equal attention and look for those on the frontier. Requirements (R3)--(R5) come from the experience described in the introduction: one extreme answer moved a quarter of the funding, typed numbers were inflated about threefold, and the report on the round's juror data collection recommends involving the projects' own people to raise participation~\cite{niemerg2026verdict}. Section~\ref{sec:analysis} makes (R4) and (R5) precise.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Mechanisms}\label{sec:mech}
@@ -137,7 +147,7 @@ A mechanism makes three choices, and the natural candidates are combinations of 
 \paragraph{What an answer does.}
 Let~$g$ be the current log-ratio of the pair.
 (i)~A \emph{nudge} uses a direction: ``more to~$a$'' sets $g \leftarrow g + \step$, ``more to~$b$'' sets $g \leftarrow g - \step$, and ``about right'' changes nothing; formally, $\corr(a)$ and~$\corr(b)$ move by~$\pm\step/2$. Equivalently, the ratio of the two amounts is multiplied or divided by~$e^{\step}$.
-(ii)~A \emph{multiplier} uses a number~$r$: $g \leftarrow g + \lr\cdot(r - g)$ for a learning rate $\lr\in(0,1]$. This is the round's format, with an incremental update.
+(ii)~A \emph{multiplier} uses a number~$r$: $g \leftarrow g + \lr\cdot(r - g)$ for a learning rate $\lr\in(0,1]$. Multipliers use the round's answer format; the incremental update is ours.
 
 \begin{table}[t]
 \caption{The candidate mechanisms, plus the AI alone.}\label{tab:mech}
@@ -154,7 +164,7 @@ flags first / random, recusal & flag and sample & -- \\
 \end{tabular}
 \end{table}
 
-The open forum is closest to the round's practice, in which anyone with an Ethereum name could become an evaluator and typed multipliers were kept~\cite{gg24round}. Throughout, the \emph{rest point} of a pair's log-ratio is a value at which the expected move of one answer is zero.
+The open forum is closest to the round's practice, in which anyone with an Ethereum Name Service (ENS) name could become an evaluator and typed multipliers were kept~\cite{gg24round}. Throughout, the \emph{rest point} of a pair's log-ratio is a value at which the expected move of one answer is zero.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Analysis}\label{sec:analysis}
@@ -169,12 +179,12 @@ We start with the properties of nudges.
 Under nudges with step~$\step > 0$:
 \begin{enumerate}[leftmargin=*,nosep,label=(\alph*)]
 \item one answer moves a log-ratio by at most~$\step$, and~$k$ answers by at most $k\cdot\step$;
-\item if the in-the-moment wanted log-ratios of a pair's answerers have a continuous distribution, then the pair's rest points are exactly its medians; in particular, if the answerers' wanted log-ratios on reflection are distributed symmetrically around~$\mu$, then the rest point is $\bel\cdot\mu$, whatever~$\infl$;
+\item if the in-the-moment wanted log-ratios of a pair's answerers have a continuous distribution, then the pair's rest points are exactly the medians of that distribution; in particular, if the answerers' wanted log-ratios on reflection are distributed symmetrically around~$\mu$, then the rest point is $\bel\cdot\mu$, whatever~$\infl$;
 \item if, for every pair, the answers' median is the target log-ratio (as when answerers are honest and wanted log-ratios are symmetric around the target's), then the target is a rest point of all pairs at once, whatever the rates at which pairs are asked.
 \end{enumerate}
 \end{theorem}
 
-Multipliers fail (a) and (b): one typed number can move a log-ratio by~$\lr$ times its distance from the current one, and the rest point is the mean of the typed numbers, which is $\infl\cdot\bel\cdot\mu$ in the setting of~(b). Part~(c) says that, under nudges, the agenda decides where attention goes but not where the split rests. If no target exists, then this fails: with inconsistent pairwise medians, the rest point depends on how often each pair is asked.
+Multipliers fail (a) and (b): one typed number can move a log-ratio by~$\lr$ times its distance from the current one, and the rest point is the mean of the typed numbers, which is $\infl\cdot\bel\cdot\mu$ in the setting of~(b). Part~(c) says that, under nudges, the agenda decides where attention goes but not where the split rests. If no target exists, then the rest point can depend on how often each pair is asked.
 
 Part~(b) shows that nudges ignore typing exaggeration. We now show that this robustness, together with two natural symmetries, forces nudges. An \emph{update rule} $U$ maps the current log-ratio~$g$ of a pair and a report $r\in\mathbb{R}$, the wanted log-ratio as the member typed it, to the new log-ratio~$U(g,r)$.
 \begin{itemize}[leftmargin=*,nosep]
@@ -216,14 +226,14 @@ Under nudges, the rest point of the pair, relative to its target log-ratio, is t
 An answer is ``more to~$j$'' with probability~$1 - H(x)$, where $H(x) = (1-\frc)F(x) + \frc F(x-\bias)$, so the expected move is zero exactly when~$H(x) = 1/2$. Since $F(-\bias) < 1/2 < F(\bias)$, we have $H(0) < 1/2 < H(\bias)$ for~$0<\frc<1$; and~$H$ decreases pointwise as~$\frc$ grows.
 \end{proof}
 
-So nudges are capture-proof exactly when maintainers do not answer about their own projects. In an open forum, the volunteers for a project that few others look at are mostly its maintainers, so~$\frc$ is close to~$1$ and the project's share rests a factor of up to~$e^{\bias}$ above the community's view. Recusal sets~$\frc=0$. Together with Theorem~\ref{thm:char}, this fixes the first two choices: nudges, answered by random non-maintainers.
+So nudges are capture-proof exactly when maintainers do not answer about their own projects. If, in an open forum, the volunteers for a project are mostly its maintainers, then~$\frc$ is close to~$1$ and the project's share rests a factor of up to~$e^{\bias}$ above the community's view. Recusal sets~$\frc=0$. Together with Theorem~\ref{thm:char}, this fixes the first two choices: nudges, answered by random non-maintainers.
 
 \subsection{Which pairs are asked}\label{sec:which}
 
-By Theorem~\ref{thm:nudge}(c), the agenda does not change where the split rests, so it can be chosen for speed alone; and since flags only set the agenda, we can let anyone flag, maintainers included. We first ask how quickly a problem is found.
+By Theorem~\ref{thm:nudge}(c), when a target exists, the agenda does not change where the split rests, so it can be chosen for speed alone; and since flags only set the agenda, we can let anyone flag, maintainers included. We first ask how quickly a problem is found.
 
 \begin{theorem}[detection]\label{thm:detect}
-Suppose project~$j$ becomes off at time zero. Under uniform pairs with~$A$ answered questions a day, the first question involving~$j$ comes after~$m/(2A)$ days in expectation. If flags pick the questions and a flagged project is asked about at once, then it comes after~$1/\notice$ days in expectation. Hence flags find problems sooner if and only if $A < m\cdot\notice/2$.
+Suppose project~$j$ becomes far off target at time zero. Under uniform pairs with~$A$ answered questions a day, the first question involving~$j$ comes after~$m/(2A)$ days in expectation. If flags pick the questions and a flagged project is asked about at once, then it comes after~$1/\notice$ days in expectation. Hence flags find problems sooner if and only if $A < m\cdot\notice/2$.
 \end{theorem}
 
 \begin{proof}
@@ -232,7 +242,7 @@ A uniform pair involves~$j$ with probability $(m-1)/\binom{m}{2} = 2/m$, so ques
 
 For the 98 projects of the round, if a problem is noticed within five days on average ($\notice = 0.2$), then flags find it sooner whenever there are fewer than 9.8 answers a day.
 
-Between problems, questions should still go somewhere. Suppose each project~$j$ is tracked against the rest of the fund by its own questions, at rate~$q_j$ with $\sum_j q_j = A$, each with its best step (Proposition~\ref{prop:track}); let~$\vol_j$ be the volatility of its target.
+Between problems, questions should still go somewhere. Suppose each project~$j$ is tracked against the rest of the fund by its own questions, at rate~$q_j$ with $\sum_j q_j = A$, each with its best step (Proposition~\ref{prop:track}); let~$\vol_j$ be the volatility of its target, and write~$\target(j)$ for its target share (we drop the time index).
 
 \begin{proposition}[attention by share]\label{prop:alloc}
 In the small-step approximation, misallocated funding per day is approximately proportional to $\sum_j \target(j)\cdot\sqrt{\vol_j}\cdot q_j^{-1/4}$, which, for a fixed total~$A$, is smallest when
@@ -243,7 +253,7 @@ q_j \propto \left(\target(j)\cdot\sqrt{\vol_j}\right)^{4/5}.
 
 If volatilities are similar, then questions should go roughly by share. In a check with 20 projects with Zipf-distributed shares and random volatilities, at 40 questions a day, the simulated misallocation was 6.49\% for uniform rates, 5.80\% for rates proportional to share, and 5.67\% for the optimal rates; the formula was within 3\% of each.
 
-Finally, once members have flagged a project, how much is one question about it worth? Consider a pair whose current log-ratio exceeds the target log-ratio by~$d$, and let~$F$ be the noise distribution of honest answers.
+Finally, once members have flagged a project, how much is one question about it worth? Consider a pair whose current log-ratio exceeds the target log-ratio by~$d$, and let~$F$ be, as in Section~\ref{sec:who}, the distribution function of honest answerers'~$\hat w$ relative to the target log-ratio.
 
 \begin{theorem}[value of one question]\label{thm:gain}
 If $|d| \ge \step$, then after one nudge from an honest answerer, the expected absolute error of the pair's log-ratio is $|d| - \step\cdot\left(2F(|d|) - 1\right)$.
@@ -253,12 +263,12 @@ If $|d| \ge \step$, then after one nudge from an honest answerer, the expected a
 Say~$d>0$. With probability~$F(d)$, the answer is ``more to~$b$'' and the error becomes $d - \step \ge 0$; otherwise, it becomes~$d+\step$. The expectation is $d - \step\cdot(2F(d)-1)$.
 \end{proof}
 
-The gain $\step\cdot(2F(|d|)-1)$ grows with the error. Since the funding at stake in a pair scales with its shares, to first order a question should go where $\target(j)\cdot(2F(|d_j|)-1)$ is largest: to large projects with large errors. Flags point at large errors, and shares at large projects. Table~\ref{tab:forced} collects the conclusions.
+The gain $\step\cdot(2F(|d|)-1)$ grows with the error. Since the funding at stake in a pair scales with its shares, to first order a question should go where $\target(j)\cdot(2F(|d_j|)-1)$ is largest, where~$d_j$ is the log-ratio error of a question about~$j$: to large projects with large errors. Flags point at large errors, and shares at large projects. Table~\ref{tab:forced} collects the conclusions.
 
 \begin{table}[t]
 \caption{Each choice of flag and sample is forced by a requirement or optimal for accuracy.}\label{tab:forced}
 \centering\small
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{1.45cm}>{\raggedright\arraybackslash}p{2.6cm}l@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{1.45cm}>{\raggedright\arraybackslash}p{2.55cm}l@{}}
 \toprule
 choice & instead of & because & result \\
 \midrule
@@ -277,7 +287,7 @@ step $\propto 1/\sqrt{q}$ & fixed step & optimal step & Prop.~\ref{prop:track} \
 The analysis treats each choice separately and partly in approximation. We now compare the complete mechanisms in one simulated world built from the round's public data.
 
 \paragraph{Setup.}
-The projects are the round's 98 repositories. The target comes from public pairwise comparisons of these repositories by six LLM-based juror personas, 41{,}418 comparisons in total~\cite{gasquez2025weights}: we fit Bradley--Terry scores~\cite{bradley1952rank} per persona, take the median, and scale it so that the largest project receives 3.3\% of the fund. The target's log-weights drift as a random walk with daily standard deviation 0.02. The AI follows the target with a small error on every project (standard deviation 0.15 in log terms) and a large one on 10\% of the projects, which it over- or under-funds by a factor of $e^{1.5}\approx 4.5$. There are 150 members; 50 of them maintain one project each, with~$\bias = 1$. A member's view is the target plus a personal deviation (standard deviation 0.5), and answers add noise (standard deviation 0.5); in the main runs, $\bel = 1$ and $\infl = 2.7$, close to the round's inflation. Typed numbers are capped at 1024; in open forums, a maintainer types the cap with probability 0.15. Each day, each member looks at one project with probability 0.05 and flags it if it looks off by more than a factor of~$e^{0.7}$, at most once in 14 days per project; a maintainer's flag on her own project counts half. Invited members answer with probability 0.5 and at most three times a day; directions within 0.1 of the current log-ratio count as ``about right''. In open forums, members volunteer 0.02 answers a day, and maintainers 0.2 answers a day about their own project. Flag and sample sends half of the questions to flagged projects, with probability proportional to their net flags, and the rest by share; each answer about a project multiplies its flags by 0.7. Each run lasts 180 days, and we report misallocation over the second half. Steps and learning rates are tuned per mechanism and attention level on 4 runs and evaluated on 12 fresh runs; we report means with standard errors.
+The projects are the round's 98 repositories. The target comes from public pairwise comparisons of these repositories by six LLM-based juror personas, 41{,}418 comparisons in total~\cite{gasquez2025weights}: we fit Bradley--Terry scores~\cite{bradley1952rank} per persona, take the median, and scale it so that the largest project receives 3.3\% of the fund. The target's log-weights drift as a random walk with daily standard deviation 0.02. The AI follows the target with a small error on every project (standard deviation 0.15 in log terms) and a large one on 10\% of the projects, which it over- or under-funds by a factor of $e^{1.5}\approx 4.5$. There are 150 members; 50 of them maintain one project each, with~$\bias = 1$. A member's view is the target plus a personal deviation (standard deviation 0.5), and answers add noise (standard deviation 0.5); in the main runs, $\bel = 1$ and $\infl = 2.7$, close to the inflation in the trial run. Typed numbers are capped at 1024; in open forums, a maintainer types the cap with probability 0.15. Each day, each member looks at one project with probability 0.05 and flags it if it looks off by more than a factor of~$e^{0.7}$, at most once in 14 days per project; a maintainer's flag on her own project counts half. Invited members answer with probability 0.5 and at most three times a day; directions within 0.1 of the current log-ratio count as ``about right''. In open forums, members volunteer 0.02 answers a day, and maintainers 0.2 answers a day about their own project. Flag and sample sends half of the questions to flagged projects, with probability proportional to their net flags, and the rest by share; each answer about a project multiplies its flags by 0.7. Each run lasts 180 days, and we report misallocation over the second half. Steps and learning rates are tuned per mechanism and attention level on 4 runs and evaluated on 12 fresh runs; we report means with standard errors.
 
 \begin{figure}[t]
 \centering
@@ -347,10 +357,6 @@ We asked which mechanism a community should use to steer an AI that continuously
 \end{enumerate}
 Several directions remain. Belief exaggeration is the main threat to any mechanism that relies on answers, and calibration questions could estimate and undo it. When no split matches all pairwise medians, the agenda affects where the split rests, and the choice of agenda becomes a social-choice question in itself. Finally, flags are free in our model; when they carry a cost or can be spammed, how much weight to give them becomes a design question.
 
-\begin{ack}
-The author used an AI assistant (Claude) for literature search, code, Lean proofs, and drafting.
-\end{ack}
-
 \bibliography{refs}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -369,7 +375,7 @@ Lean names refer to the file \texttt{SteerProofs/Basic.lean} in the supplementar
 Lean: \texttt{characterization}, with the four properties defined as \texttt{Responsive}, \texttt{TypingProof}, \texttt{LevelFree}, and \texttt{Neutral}. The proof is the one in the main text: level-freeness with~$c = g$ gives $U(g,r) = g + U(0,r-g)$; typing-proofness with the scaling $\tau(z) = z\cdot y/x$ gives $U(0,x) = U(0,y)$ for~$x,y>0$; responsiveness gives $U(0,1) \ge 0$; neutrality with~$g=r=0$ gives~$U(0,0)=0$, and with~$r = -x$ gives $U(0,-x) = -U(0,x)$.
 
 \paragraph{Proposition~\ref{prop:track}.}
-Let $y_t = g_t - \mu_t$. Between questions, $y$ moves by the Brownian drift of~$\mu$, with variance~$\vol^2$ per day. A question arrives at rate~$q$ and moves~$y$ by~$+\step$ with probability $1-F_\varepsilon(-y)$ and by~$-\step$ otherwise, where $F_\varepsilon$ is the noise distribution; the expected move per day is $q\cdot\step\cdot(1-2F_\varepsilon(y)) \approx -2\cdot q\cdot\step\cdot\dens\cdot y$ for small~$y$, and the variance per day is $q\cdot\step^2 + \vol^2$. In the diffusion approximation, $y$ is an Ornstein--Uhlenbeck process with mean reversion $\kappa = 2\cdot q\cdot\step\cdot\dens$ and variance rate $\sigma^2 = q\cdot\step^2+\vol^2$, whose stationary variance is $\sigma^2/(2\kappa)$, the formula in the proposition. By the inequality of arithmetic and geometric means, $q\cdot\step^2 + \vol^2 \ge 2\cdot\sqrt q\cdot\vol\cdot\step$, with equality at $\step = \vol/\sqrt q$ (Lean: \texttt{best\_step}). For multipliers, the mean reversion is~$q\cdot\lr$ and the variance rate $q\cdot\lr^2\cdot\sd^2 + \vol^2$; the same argument gives the best value $\vol\cdot\sd/\sqrt q$ at $\lr = \vol/(\sd\cdot\sqrt q)$. For normal noise, $\dens = 1/(\sd\sqrt{2\pi})$ and the ratio $1/(2\cdot\dens\cdot\sd)$ is $\sqrt{\pi/2}$; for Laplace noise with scale~$s$, $\dens = 1/(2s)$ and $\sd = s\sqrt2$, and the ratio is~$1/\sqrt 2$. The numerical check simulates the exact jump process; the best step on the grid $\{0.25, 0.5, 1, 2, 4\}\cdot\vol/\sqrt q$ was $\vol/\sqrt q$ for $q \in \{1,4,16,64\}$, and the simulated error exceeded the formula by 2--4\%.
+Let $y_t = g_t - \mu_t$. Between questions, $y$ moves by the Brownian drift of~$\mu$, with variance~$\vol^2$ per day. A question arrives at rate~$q$ and moves~$y$ by~$+\step$ with probability $1-F_\varepsilon(y)$ and by~$-\step$ otherwise, where $F_\varepsilon$ is the noise distribution; the expected move per day is $q\cdot\step\cdot(1-2F_\varepsilon(y)) \approx -2\cdot q\cdot\step\cdot\dens\cdot y$ for small~$y$, and the variance per day is $q\cdot\step^2 + \vol^2$. In the diffusion approximation, $y$ is an Ornstein--Uhlenbeck process with mean reversion $\kappa = 2\cdot q\cdot\step\cdot\dens$ and variance rate $\sigma^2 = q\cdot\step^2+\vol^2$, whose stationary variance is $\sigma^2/(2\kappa)$, the formula in the proposition. By the inequality of arithmetic and geometric means, $q\cdot\step^2 + \vol^2 \ge 2\cdot\sqrt q\cdot\vol\cdot\step$, with equality at $\step = \vol/\sqrt q$ (Lean: \texttt{best\_step}). For multipliers, the mean reversion is~$q\cdot\lr$ and the variance rate $q\cdot\lr^2\cdot\sd^2 + \vol^2$; the same argument gives the best value $\vol\cdot\sd/\sqrt q$ at $\lr = \vol/(\sd\cdot\sqrt q)$. For normal noise, $\dens = 1/(\sd\sqrt{2\pi})$ and the ratio $1/(2\cdot\dens\cdot\sd)$ is $\sqrt{\pi/2}$; for Laplace noise with scale~$s$, $\dens = 1/(2s)$ and $\sd = s\sqrt2$, and the ratio is~$1/\sqrt 2$. The numerical check simulates the exact jump process; the best step on the grid $\{0.25, 0.5, 1, 2, 4\}\cdot\vol/\sqrt q$ was $\vol/\sqrt q$ for $q \in \{1,4,16,64\}$, and the simulated error exceeded the formula by 2--4\%.
 
 \paragraph{Theorem~\ref{thm:capture}.}
 Let $H_{\frc}(x) = (1-\frc)F(x) + \frc F(x-\bias)$. The answer is ``more to~$b$'' with probability $H_{\frc}(x)$, so by the argument of Theorem~\ref{thm:nudge}(b), the rest point solves $H_{\frc}(x) = 1/2$; $H_{\frc}$ is continuous and strictly increasing, so the solution is unique when it exists. For~$\frc = 0$, the solution is~$0$ (Lean: \texttt{recusal\_rest}). If~$\frc>0$ and~$x\le 0$, then $F(x)\le 1/2$ and $F(x-\bias)<1/2$, so $H_{\frc}(x)<1/2$; hence $x_{\frc} > 0$ (Lean: \texttt{capture}). If~$\frc<1$ and $x \ge \bias$, then~$F(x) > 1/2$ and $F(x-\bias) \ge 1/2$, so $H_{\frc}(x) > 1/2$; hence $x_{\frc} < \bias$ (Lean: \texttt{capture\_lt\_bias}). For~$\frc = 1$, $F(x - \bias) = 1/2$ gives~$x = \bias$. If $\frc < \frc'$ and $x_{\frc'} \le x_{\frc}$, then $H_{\frc'}(x_{\frc'}) \le H_{\frc'}(x_{\frc}) = H_{\frc}(x_{\frc}) + (\frc'-\frc)(F(x_{\frc}-\bias) - F(x_{\frc})) < 1/2$, a contradiction (Lean: \texttt{capture\_mono}).
